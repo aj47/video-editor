@@ -1,4 +1,4 @@
-import { FluentIconsProps } from '@fluentui/react-icons';
+// import { FluentIconsProps } from '@fluentui/react-icons';
 import { FunctionComponent } from 'react';
 
 import { Icon } from '@components/Shared';
@@ -17,7 +17,7 @@ export const VideoControllerIcon = (props: ControllerIconProps) => (
 );
 
 type Props = {
-  FluentIcon: FunctionComponent<FluentIconsProps>;
+  FluentIcon: FunctionComponent<any>;
   onClick: () => void;
 };
 

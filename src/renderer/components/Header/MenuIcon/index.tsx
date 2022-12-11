@@ -1,4 +1,4 @@
-import { FluentIconsProps } from '@fluentui/react-icons';
+// import { FluentIconsProps } from '@fluentui/react-icons';
 import { FunctionComponent } from 'react';
 
 import * as Styled from './Styled';
@@ -6,7 +6,7 @@ import * as Styled from './Styled';
 type Props = {
   width: number;
   text: string;
-  FluentIcon: FunctionComponent<FluentIconsProps>;
+  FluentIcon: FunctionComponent<any>;
 };
 
 export const MenuIcon = (props: Props) => {

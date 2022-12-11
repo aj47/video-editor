@@ -18,7 +18,7 @@ export const TitleBar = () => {
   return (
     <Styled.Container>
       <Styled.TitleText>
-        Gifizer
+        Video editor
         {titleFileName}
       </Styled.TitleText>
 
