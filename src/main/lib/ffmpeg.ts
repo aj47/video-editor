@@ -121,7 +121,13 @@ export const detectSilence = async (
         })
       }
       
-      resolve(blocks)
+      resolve(blocks.map((b, i) => ({
+        start: b.start,
+        end: b.end,
+        active: i === 0, // First block active by default
+        label: `Segment ${i + 1}`,
+        color: '#4CAF50'
+      })))
     })
 
     command.on('error', reject)
@@ -133,8 +139,8 @@ export const convert = (filePath: string, option: ConvertOption, segments: Array
   const command = ffmpeg()
     .input(filePath)
     .inputOptions(segments.flatMap(({ start, end }) => [
-      '-ss', `${Math.max(0, start - 0.1)}`, // Add 100ms padding before segment
-      '-to', `${end + 0.1}`, // Add 100ms padding after segment
+      '-ss', `${Math.max(0, start - 0.1)}`,
+      '-to', `${end + 0.1}`,
       '-c copy',
       '-avoid_negative_ts make_zero'
     ]))

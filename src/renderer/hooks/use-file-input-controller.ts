@@ -30,7 +30,8 @@ export const useFileInputController = () => {
 
   const onDrop = useCallback(
     async (files: File[]) => {
-      setVideoBlocks([]); // Reset blocks when new file loads
+      setVideoBlocks([]);
+      setCurrentBlockIndex(-1);
       if (files.length < 1) return;
 
       const filePath = files[0].path;

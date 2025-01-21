@@ -212,9 +212,17 @@ export const OptionSetter = () => {
       <Styled.ItemSummery>Silence Detection</Styled.ItemSummery>
       <Styled.ItemWrapper>
         <Styled.IconButton 
-          onClick={() => {
+          onClick={async () => {
             const filePath = useRecoilValue(inputFilePathState);
-            if (filePath) window.api.detectSilence(filePath);
+            if (!filePath) return;
+            
+            const blocks = await window.api.detectSilence(filePath);
+            setVideoBlocks(blocks.map((b, i) => ({
+              ...b,
+              active: false, // Mark silent blocks as inactive (red) by default
+              label: `Segment ${i + 1}`,
+              color: '#FF5252'
+            })));
           }}
           title="Detect silent segments automatically"
         >

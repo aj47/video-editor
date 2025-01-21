@@ -78,10 +78,19 @@ export const TimelineEditor = () => {
 
   return (
     <Container ref={containerRef}>
-      <Canvas
-        ref={canvasRef}
-        onClick={handleCanvasClick}
-      />
+      <TimelineTrack>
+        {videoBlocks.map((block, index) => (
+          <Block
+            key={index}
+            $width={((block.end - block.start) / duration) * 100}
+            $left={(block.start / duration) * 100}
+            $active={block.active}
+            onClick={() => handleBlockClick(index)}
+          >
+            {block.label}
+          </Block>
+        ))}
+      </TimelineTrack>
     </Container>
   );
 };
