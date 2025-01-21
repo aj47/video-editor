@@ -125,8 +125,8 @@ export const convert = (filePath: string, option: ConvertOption, segments: Array
   const command = ffmpeg()
     .input(filePath)
     .inputOptions(segments.flatMap(({ start, end }) => [
-      `-ss ${start}`,
-      `-to ${end}`,
+      `-ss ${Math.max(0, start - 0.1)}`, // Add 100ms padding before segment
+      `-to ${end + 0.1}`, // Add 100ms padding after segment
       '-c copy',
       '-avoid_negative_ts make_zero'
     ]))

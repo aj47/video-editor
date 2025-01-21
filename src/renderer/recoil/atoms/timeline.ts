@@ -14,7 +14,8 @@ export type VideoBlockType = {
   start: number;
   end: number;
   active: boolean;
-  label?: string;
+  label: string;
+  color?: string;
 };
 
 export const videoBlocksState = atom<VideoBlockType[]>({

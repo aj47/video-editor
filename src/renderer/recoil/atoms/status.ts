@@ -5,6 +5,8 @@ export type VideoBlock = {
   start: number;
   end: number;
   active: boolean;
+  label: string;
+  color?: string;
 };
 
 export const convertStatusState = atom<ConvertStatus | undefined>({

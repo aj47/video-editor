@@ -53,18 +53,19 @@ export const useVideoController = () => {
         togglePlaying();
       } else if (e.code === 'Tab') {
         e.preventDefault();
-        // Toggle edit mode logic here
-      } else if (e.code.startsWith('Digit') && editMode) {
+        setEditorMode(mode => mode === 'cut' ? 'label' : 'cut');
+      } else if (e.code.startsWith('Digit') && editorMode === 'label') {
         const digit = parseInt(e.code.slice(5), 10);
-        // Handle number key labels 1-9
         if (digit >= 1 && digit <= 9) {
           e.preventDefault();
-          handleLabelApply(digit);
+          setVideoBlocks(blocks => blocks.map((block, i) => 
+            i === currentBlockIndex ? {...block, label: `Label ${digit}`} : block
+          ));
         }
-      } else if (e.code === 'ArrowLeft' && editMode) {
+      } else if (e.code === 'ArrowLeft' && editorMode === 'cut') {
         e.preventDefault();
         setCurrentBlockIndex(prev => Math.max(0, prev - 1));
-      } else if (e.code === 'ArrowRight' && editMode) {
+      } else if (e.code === 'ArrowRight' && editorMode === 'cut') {
         e.preventDefault();
         setCurrentBlockIndex(prev => Math.min(videoBlocks.length - 1, prev + 1));
       }
