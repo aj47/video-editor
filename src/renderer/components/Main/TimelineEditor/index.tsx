@@ -67,7 +67,7 @@ export const TimelineEditor = () => {
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
     };
-  }, []);
+  }, [handleResizeMove, handleResizeEnd]);
 
   useEffect(() => {
     document.addEventListener('mousemove', handleResizeMove);
@@ -101,7 +101,7 @@ export const TimelineEditor = () => {
       return newBlocks;
     });
     setCurrentBlockIndex(-1);
-  }, [setVideoBlocks]);
+  }, [setVideoBlocks, setCurrentBlockIndex]);
 
   const drawTimeline = useCallback(() => {
     const canvas = canvasRef.current;
