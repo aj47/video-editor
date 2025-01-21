@@ -73,6 +73,20 @@ export const useVideoController = () => {
       } else if (e.code === 'ArrowRight' && editorMode === 'cut') {
         e.preventDefault();
         setCurrentBlockIndex(prev => Math.min(videoBlocks.length - 1, prev + 1));
+      } else if (e.key === 'm' && e.shiftKey) {
+        e.preventDefault();
+        if (currentBlockIndex >= 0 && currentBlockIndex < videoBlocks.length - 1) {
+          setVideoBlocks(blocks => {
+            const newBlocks = [...blocks];
+            const mergedBlock = {
+              ...newBlocks[currentBlockIndex],
+              end: newBlocks[currentBlockIndex + 1].end,
+              label: newBlocks[currentBlockIndex].label
+            };
+            newBlocks.splice(currentBlockIndex, 2, mergedBlock);
+            return newBlocks;
+          });
+        }
       }
     };
 

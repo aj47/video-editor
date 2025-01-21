@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { HexColorPicker } from 'react-colorful';
+import { useClickOutside } from '@hooks/use-click-outside';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { inputFilePathState } from '@recoil/atoms/input-file';
 import { videoBlocksState, currentBlockIndexState, VideoBlockType } from '@recoil/atoms/timeline';
@@ -24,6 +26,48 @@ export const TimelineEditor = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragHandle, setDragHandle] = useState<'start' | 'end' | null>(null);
   const [currentBlock, setCurrentBlock] = useState<number>(-1);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeOriginalTime, setResizeOriginalTime] = useState(0);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, index: number, handle: 'start' | 'end') => {
+    e.stopPropagation();
+    setIsDragging(true);
+    setCurrentBlock(index);
+    setDragHandle(handle);
+    setResizeStartX(e.clientX);
+    setResizeOriginalTime(handle === 'start' ? videoBlocks[index].start : videoBlocks[index].end);
+  }, [videoBlocks]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || currentBlock === -1 || !containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const deltaX = e.clientX - resizeStartX;
+    const timeDelta = (deltaX / containerRect.width) * duration;
+    
+    setVideoBlocks(blocks => blocks.map((block, i) => {
+      if (i !== currentBlock) return block;
+      
+      return dragHandle === 'start' 
+        ? {...block, start: Math.max(0, Math.min(block.end - 0.1, resizeOriginalTime + timeDelta))}
+        : {...block, end: Math.min(duration, Math.max(block.start + 0.1, resizeOriginalTime + timeDelta))};
+    }));
+  }, [isDragging, currentBlock, duration, resizeStartX, resizeOriginalTime, dragHandle]);
+
+  const handleResizeEnd = useCallback(() => {
+    setIsDragging(false);
+    setCurrentBlock(-1);
+    setDragHandle(null);
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, [handleResizeMove, handleResizeEnd]);
   const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
   const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
   const { width: containerWidth } = useResizeObserver(containerRef);
@@ -94,8 +138,35 @@ export const TimelineEditor = () => {
     seekTo(clickTime);
   };
 
+  const [colorPickerPos, setColorPickerPos] = useState<{x: number; y: number} | null>(null);
+  const [colorPickerBlock, setColorPickerBlock] = useState<number>(-1);
+  const colorPickerRef = useClickOutside<HTMLDivElement>(() => setColorPickerPos(null));
+
+  const handleColorChange = useCallback((color: string) => {
+    setVideoBlocks(blocks => blocks.map((b, i) => 
+      i === colorPickerBlock ? {...b, color} : b
+    ));
+  }, [colorPickerBlock]);
+
   return (
     <Container ref={containerRef}>
+      {colorPickerPos && (
+        <div
+          ref={colorPickerRef}
+          style={{
+            position: 'fixed',
+            left: colorPickerPos.x,
+            top: colorPickerPos.y,
+            zIndex: 1000,
+            background: 'white',
+            padding: '8px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+          }}
+        >
+          <HexColorPicker color={videoBlocks[colorPickerBlock]?.color || '#FF5252'} onChange={handleColorChange} />
+        </div>
+      )}
       <TimelineTrack>
         {videoBlocks.map((block, index) => (
           <Block
@@ -109,7 +180,8 @@ export const TimelineEditor = () => {
             }}
             onContextMenu={(e) => {
               e.preventDefault();
-              // TODO: Implement color picker context menu
+              setColorPickerBlock(index);
+              setColorPickerPos({x: e.clientX, y: e.clientY});
             }}
           >
             <ResizeHandle 
