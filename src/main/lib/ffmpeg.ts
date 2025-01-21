@@ -84,13 +84,19 @@ export const detectSilence = async (
       const startTimes = []
       const endTimes = []
       
-      const lines = output.split('\n')
+      const videoDuration = await new Promise<number>((resolve) => {
+        ffmpeg(filePath).ffprobe((err, data) => {
+          resolve(data?.format?.duration || 0);
+        });
+      });
+      
+      const lines = output.split('\n');
       lines.forEach(line => {
-        const startMatch = line.match(/silence_start: (\d+\.\d+)/)
-        const endMatch = line.match(/silence_end: (\d+\.\d+)/)
-        if (startMatch) startTimes.push(parseFloat(startMatch[1]))
-        if (endMatch) endTimes.push(parseFloat(endMatch[1]))
-      })
+        const startMatch = line.match(/silence_start: (\d+\.\d+)/);
+        const endMatch = line.match(/silence_end: (\d+\.\d+)/);
+        if (startMatch) startTimes.push(parseFloat(startMatch[1]));
+        if (endMatch) endTimes.push(parseFloat(endMatch[1]));
+      });
 
       // Process detected silence blocks into usable segments
       let currentStart = 0

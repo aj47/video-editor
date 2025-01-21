@@ -207,6 +207,17 @@ export const OptionSetter = () => {
         </Styled.IconToggle>
         Use a palette to downsample an input video stream.
       </Styled.ItemWrapper>
+
+      <Styled.ItemSummery>Silence Detection</Styled.ItemSummery>
+      <Styled.ItemWrapper>
+        <Styled.IconButton 
+          onClick={() => window.api.detectSilence(filePath)}
+          title="Detect silent segments automatically"
+        >
+          <CutRegular fontSize={22} style={{ verticalAlign: 'middle' }} />
+          <Styled.IconButtonText>Detect Silence</Styled.IconButtonText>
+        </Styled.IconButton>
+      </Styled.ItemWrapper>
     </Styled.Container>
   );
 };

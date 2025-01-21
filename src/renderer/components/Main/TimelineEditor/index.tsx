@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { videoBlocksState, currentBlockIndexState, VideoBlockType } from '@recoil/atoms/timeline';
 import { useResizeObserver } from '@hooks/use-resize-observer';
 import { useVideoController } from '@hooks/use-video-controller';
@@ -23,6 +23,18 @@ export const TimelineEditor = () => {
   const videoBlocks = useRecoilValue(videoBlocksState);
   const setCurrentBlockIndex = useSetRecoilState(currentBlockIndexState);
   const { width: containerWidth } = useResizeObserver(containerRef);
+
+  const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
+  const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
+
+  const handleBlockClick = useCallback((index: number) => {
+    setCurrentBlockIndex(index);
+    setVideoBlocks(blocks => 
+      blocks.map((block, i) => 
+        i === index ? {...block, active: !block.active} : block
+      )
+    );
+  }, [setCurrentBlockIndex, setVideoBlocks]);
 
   const drawTimeline = useCallback(() => {
     const canvas = canvasRef.current;

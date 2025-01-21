@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { useSetRecoilState } from 'recoil';
+import { videoBlocksState } from '@recoil/atoms/timeline';
 import { useDropzone } from 'react-dropzone';
 
 import { getFilename } from '@renderer/util';
@@ -24,7 +26,11 @@ export const useFileInputController = () => {
     [setFileState]
   );
 
+  const setVideoBlocks = useSetRecoilState(videoBlocksState);
+
   const onDrop = useCallback(
+    async (files: File[]) => {
+      setVideoBlocks([]); // Reset blocks when new file loads
     async (files: File[]) => {
       if (files.length < 1) return;
 
