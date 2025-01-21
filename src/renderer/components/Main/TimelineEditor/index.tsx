@@ -21,6 +21,9 @@ export const TimelineEditor = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { duration, seekTo } = useVideoController();
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragHandle, setDragHandle] = useState<'start' | 'end' | null>(null);
+  const [currentBlock, setCurrentBlock] = useState<number>(-1);
   const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
   const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
   const { width: containerWidth } = useResizeObserver(containerRef);
@@ -33,6 +36,21 @@ export const TimelineEditor = () => {
       )
     );
   }, [setCurrentBlockIndex, setVideoBlocks]);
+
+  const mergeBlocks = useCallback((index: number) => {
+    setVideoBlocks(blocks => {
+      if (index < 0 || index >= blocks.length - 1) return blocks;
+      const newBlocks = [...blocks];
+      const mergedBlock = {
+        ...newBlocks[index],
+        end: newBlocks[index + 1].end,
+        label: newBlocks[index].label
+      };
+      newBlocks.splice(index, 2, mergedBlock);
+      return newBlocks;
+    });
+    setCurrentBlockIndex(-1);
+  }, [setVideoBlocks]);
 
   const drawTimeline = useCallback(() => {
     const canvas = canvasRef.current;
@@ -85,9 +103,35 @@ export const TimelineEditor = () => {
             $width={((block.end - block.start) / duration) * 100}
             $left={(block.start / duration) * 100}
             $active={block.active}
-            onClick={() => handleBlockClick(index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBlockClick(index);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              // TODO: Implement color picker context menu
+            }}
           >
-            {block.label}
+            <ResizeHandle 
+              $side="left" 
+              onMouseDown={(e) => handleResizeStart(e, index, 'start')}
+            />
+            <LabelText
+              onDoubleClick={() => {
+                const newLabel = prompt('Enter new label:', block.label);
+                if (newLabel) {
+                  setVideoBlocks(blocks => blocks.map((b, i) => 
+                    i === index ? {...b, label: newLabel} : b
+                  ));
+                }
+              }}
+            >
+              {block.label}
+            </LabelText>
+            <ResizeHandle 
+              $side="right" 
+              onMouseDown={(e) => handleResizeStart(e, index, 'end')}
+            />
           </Block>
         ))}
       </TimelineTrack>
