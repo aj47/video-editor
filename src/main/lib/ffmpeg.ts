@@ -63,7 +63,11 @@ export const inspectFile = async (
   };
 };
 
-export const detectSilence = async (filePath: string): Promise<Array<{ start: number; end: number }>> => {
+export const detectSilence = async (
+  filePath: string,
+  bufferBefore = 0.5,
+  bufferAfter = 0.5
+): Promise<Array<{ start: number; end: number }>> => {
   return new Promise((resolve, reject) => {
     let output = ''
     const command = ffmpeg(filePath)
@@ -93,10 +97,21 @@ export const detectSilence = async (filePath: string): Promise<Array<{ start: nu
       startTimes.forEach((start, i) => {
         const end = endTimes[i] || start + 0.1
         if (start > currentStart) {
-          blocks.push({ start: currentStart, end: start })
+          // Apply buffer zones to detected blocks
+          const blockStart = Math.max(0, currentStart - bufferBefore)
+          const blockEnd = Math.min(videoDuration, start + bufferAfter)
+          blocks.push({ start: blockStart, end: blockEnd })
         }
         currentStart = end
       })
+      
+      // Add final segment if needed
+      if (currentStart < videoDuration) {
+        blocks.push({ 
+          start: Math.max(0, currentStart - bufferBefore),
+          end: videoDuration
+        })
+      }
       
       resolve(blocks)
     })

@@ -54,6 +54,19 @@ export const useVideoController = () => {
       } else if (e.code === 'Tab') {
         e.preventDefault();
         // Toggle edit mode logic here
+      } else if (e.code.startsWith('Digit') && editMode) {
+        const digit = parseInt(e.code.slice(5), 10);
+        // Handle number key labels 1-9
+        if (digit >= 1 && digit <= 9) {
+          e.preventDefault();
+          handleLabelApply(digit);
+        }
+      } else if (e.code === 'ArrowLeft' && editMode) {
+        e.preventDefault();
+        setCurrentBlockIndex(prev => Math.max(0, prev - 1));
+      } else if (e.code === 'ArrowRight' && editMode) {
+        e.preventDefault();
+        setCurrentBlockIndex(prev => Math.min(videoBlocks.length - 1, prev + 1));
       }
     };
 
