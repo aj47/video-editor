@@ -12,8 +12,8 @@ export const convertStatusState = atom<ConvertStatus | undefined>({
   default: undefined,
 });
 
-export const videoBlocksState = atom<VideoBlock[]>({
-  key: 'videoBlocksState',
+export const convertVideoBlocksState = atom<VideoBlock[]>({
+  key: 'convertVideoBlocksState',
   default: [],
 });
 
