@@ -29,6 +29,9 @@ export const TimelineEditor = () => {
   const [resizeStartX, setResizeStartX] = useState(0);
   const [resizeOriginalTime, setResizeOriginalTime] = useState(0);
 
+  const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
+  const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
+
   const handleResizeStart = useCallback((e: React.MouseEvent, index: number, handle: 'start' | 'end') => {
     e.stopPropagation();
     setIsDragging(true);
@@ -36,7 +39,7 @@ export const TimelineEditor = () => {
     setDragHandle(handle);
     setResizeStartX(e.clientX);
     setResizeOriginalTime(handle === 'start' ? videoBlocks[index].start : videoBlocks[index].end);
-  }, []);
+  }, [videoBlocks]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isDragging || currentBlock === -1 || !containerRef.current) return;
