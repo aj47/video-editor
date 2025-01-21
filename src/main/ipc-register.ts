@@ -42,10 +42,14 @@ export const ipcRegister = () => {
     return result;
   });
 
+  ipcMain.handle('detect-silence', async (_, filePath: string) => {
+    return await detectSilence(filePath);
+  });
+
   ipcMain.handle(
     'convert',
-    async (event, filePath: string, option: ConvertOption) => {
-      ffcommand = convert(filePath, option);
+    async (event, filePath: string, option: ConvertOption, segments: Array<{ start: number; end: number }>) => {
+      ffcommand = convert(filePath, option, segments);
 
       const sendStatus = (status: ConvertStatus) => {
         event.sender.send('convert-status', status);

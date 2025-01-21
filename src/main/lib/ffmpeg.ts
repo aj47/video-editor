@@ -63,9 +63,56 @@ export const inspectFile = async (
   };
 };
 
-export const convert = (filePath: string, option: ConvertOption) => {
+export const detectSilence = async (filePath: string): Promise<Array<{ start: number; end: number }>> => {
+  return new Promise((resolve, reject) => {
+    let output = ''
+    const command = ffmpeg(filePath)
+      .audioFilters('silencedetect=noise=-40dB:d=0.1')
+      .format('null')
+      .output('-')
+
+    command.on('stderr', (errLine) => {
+      output += errLine
+    })
+
+    command.on('end', () => {
+      const blocks = []
+      const startTimes = []
+      const endTimes = []
+      
+      const lines = output.split('\n')
+      lines.forEach(line => {
+        const startMatch = line.match(/silence_start: (\d+\.\d+)/)
+        const endMatch = line.match(/silence_end: (\d+\.\d+)/)
+        if (startMatch) startTimes.push(parseFloat(startMatch[1]))
+        if (endMatch) endTimes.push(parseFloat(endMatch[1]))
+      })
+
+      // Process detected silence blocks into usable segments
+      let currentStart = 0
+      startTimes.forEach((start, i) => {
+        const end = endTimes[i] || start + 0.1
+        if (start > currentStart) {
+          blocks.push({ start: currentStart, end: start })
+        }
+        currentStart = end
+      })
+      
+      resolve(blocks)
+    })
+
+    command.on('error', reject)
+    command.run()
+  })
+}
+
+export const convert = (filePath: string, option: ConvertOption, segments: Array<{ start: number; end: number }>) => {
   const command = ffmpeg()
     .input(filePath)
+    .inputOptions(segments.flatMap(({ start, end }) => [
+      `-ss ${start}`,
+      `-to ${end}`
+    ]))
     .format('gif')
     .withNoAudio()
     .output(option.outputPath);
