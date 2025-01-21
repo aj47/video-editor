@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { editorModeState, videoBlocksState, currentBlockIndexState } from '@recoil/atoms/status';
+import { editorModeState } from '@recoil/atoms/status';
+import { videoBlocksState, currentBlockIndexState } from '@recoil/atoms/timeline';
 
 import { inputFilePathState, playerRefState } from '@recoil/atoms';
 

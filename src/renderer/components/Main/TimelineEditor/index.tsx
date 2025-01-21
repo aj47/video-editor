@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
-import { useClickOutside } from '@hooks/use-click-outside';
+import { useClickOutside } from '../../../hooks/use-click-outside';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { inputFilePathState } from '@recoil/atoms/input-file';
 import { videoBlocksState, currentBlockIndexState, VideoBlockType } from '@recoil/atoms/timeline';
