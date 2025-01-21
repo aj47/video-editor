@@ -7,17 +7,14 @@ import { videoBlocksState, currentBlockIndexState, VideoBlockType } from '@recoi
 import { useResizeObserver } from '@hooks/use-resize-observer';
 import { useVideoController } from '@hooks/use-video-controller';
 import styled from 'styled-components';
-
-const Container = styled.div`
-  padding: 16px 0;
-  background: ${({ theme }) => theme.palette.bgSecondary};
-  border-radius: 8px;
-`;
-
-const Canvas = styled.canvas`
-  width: 100%;
-  height: 60px;
-`;
+import {
+  Container,
+  TimelineTrack,
+  Block,
+  ResizeHandle,
+  LabelText,
+  Canvas
+} from './Styled';
 
 export const TimelineEditor = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
