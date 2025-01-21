@@ -80,8 +80,6 @@ export const TimelineEditor = () => {
       document.removeEventListener('mouseup', handleResizeEnd);
     };
   }, [handleResizeMove, handleResizeEnd]);
-  const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
-  const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
   const { width: containerWidth } = useResizeObserver(containerRef);
 
   const handleBlockClick = useCallback((index: number) => {
