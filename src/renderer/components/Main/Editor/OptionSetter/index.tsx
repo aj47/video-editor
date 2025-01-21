@@ -50,6 +50,7 @@ export const OptionSetter = () => {
   );
 
   const setCropOption = useSetRecoilState(cropOptionState);
+  const inputFilePath = useRecoilValue(inputFilePathState);
 
   const [inputStartTime, setInputStartTime] = useState('');
   const [inputEndTime, setInputEndTime] = useState('');
@@ -213,13 +214,13 @@ export const OptionSetter = () => {
       <Styled.ItemWrapper>
         <Styled.IconButton 
           onClick={async () => {
-            const filePath = useRecoilValue(inputFilePathState);
+            const filePath = inputFilePath; // Use the value from component scope
             if (!filePath) return;
             
             const blocks = await window.api.detectSilence(filePath);
             setVideoBlocks(blocks.map((b, i) => ({
               ...b,
-              active: false, // Mark silent blocks as inactive (red) by default
+              active: false,
               label: `Segment ${i + 1}`,
               color: '#FF5252'
             })));
