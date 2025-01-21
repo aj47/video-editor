@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { inputFilePathState } from '@recoil/atoms/input-file';
 import { videoBlocksState, currentBlockIndexState, VideoBlockType } from '@recoil/atoms/timeline';
 import { useResizeObserver } from '@hooks/use-resize-observer';
 import { useVideoController } from '@hooks/use-video-controller';

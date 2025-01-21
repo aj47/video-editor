@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { editorModeState, videoBlocksState, currentBlockIndexState } from '@recoil/atoms/status';
 
 import { inputFilePathState, playerRefState } from '@recoil/atoms';
 
@@ -46,6 +47,10 @@ export const useVideoController = () => {
   );
 
   // Keyboard shortcuts
+  const [editorMode, setEditorMode] = useRecoilState(editorModeState);
+  const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
+  const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {

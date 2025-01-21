@@ -85,11 +85,12 @@ export const detectSilence = async (
       const endTimes = [];
       
       // Get video duration using ffprobe
-      const videoDuration = await new Promise<number>((resolve) => {
-        ffmpeg(filePath).ffprobe((err, data) => {
-          resolve(data?.format?.duration || 0);
-        });
-      });
+      const getVideoDuration = async (filePath: string) => {
+        const data = await ffprobeAsync(filePath);
+        return data.format.duration || 0;
+      };
+      
+      const videoDuration = await getVideoDuration(filePath);
       
       const lines = output.split('\n');
       lines.forEach(line => {
@@ -132,8 +133,8 @@ export const convert = (filePath: string, option: ConvertOption, segments: Array
   const command = ffmpeg()
     .input(filePath)
     .inputOptions(segments.flatMap(({ start, end }) => [
-      `-ss ${Math.max(0, start - 0.1)}`, // Add 100ms padding before segment
-      `-to ${end + 0.1}`, // Add 100ms padding after segment
+      '-ss', `${Math.max(0, start - 0.1)}`, // Add 100ms padding before segment
+      '-to', `${end + 0.1}`, // Add 100ms padding after segment
       '-c copy',
       '-avoid_negative_ts make_zero'
     ]))

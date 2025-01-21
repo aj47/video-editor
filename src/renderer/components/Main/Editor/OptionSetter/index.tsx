@@ -212,7 +212,10 @@ export const OptionSetter = () => {
       <Styled.ItemSummery>Silence Detection</Styled.ItemSummery>
       <Styled.ItemWrapper>
         <Styled.IconButton 
-          onClick={() => window.api.detectSilence(useRecoilValue(inputFilePathState))}
+          onClick={() => {
+            const filePath = useRecoilValue(inputFilePathState);
+            if (filePath) window.api.detectSilence(filePath);
+          }}
           title="Detect silent segments automatically"
         >
           <CutRegular fontSize={22} style={{ verticalAlign: 'middle' }} />
