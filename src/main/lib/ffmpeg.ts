@@ -111,7 +111,9 @@ export const convert = (filePath: string, option: ConvertOption, segments: Array
     .input(filePath)
     .inputOptions(segments.flatMap(({ start, end }) => [
       `-ss ${start}`,
-      `-to ${end}`
+      `-to ${end}`,
+      '-c copy',
+      '-avoid_negative_ts make_zero'
     ]))
     .format('gif')
     .withNoAudio()

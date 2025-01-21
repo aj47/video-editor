@@ -3,3 +3,4 @@ export * from './messages';
 export * from './options';
 export * from './player';
 export * from './status';
+export * from './timeline';

@@ -45,6 +45,22 @@ export const useVideoController = () => {
     [videoRef]
   );
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlaying();
+      } else if (e.code === 'Tab') {
+        e.preventDefault();
+        // Toggle edit mode logic here
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlaying]);
+
   useEffect(() => {
     setIsPlaying(false);
 
