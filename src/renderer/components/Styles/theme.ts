@@ -10,5 +10,6 @@ export const theme = {
     hover: 'rgba(255, 255, 255, 0.1)',
     active: 'rgba(255, 255, 255, 0.25)',
     backdropBlur: 'blur(15px)',
+    bgSecondary: '#2F3136', // Adding the missing bgSecondary color
   },
 };
