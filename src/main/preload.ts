@@ -31,6 +31,8 @@ const contextBridgeApis = {
       ipcRenderer.invoke('show-open-dialog'),
     showSaveDialog: (defaultPath: string): Promise<SaveDialogReturnValue> =>
       ipcRenderer.invoke('show-save-dialog', defaultPath),
+    detectSilence: (filePath: string) =>
+      ipcRenderer.invoke('detect-silence', filePath),
     convert: (filePath: string, option: ConvertOption) =>
       ipcRenderer.invoke('convert', filePath, option),
     onConvertStatus: (callback: (status: ConvertStatus) => void) => {
