@@ -79,11 +79,12 @@ export const detectSilence = async (
       output += errLine
     })
 
-    command.on('end', () => {
-      const blocks = []
-      const startTimes = []
-      const endTimes = []
+    command.on('end', async () => {
+      const blocks = [];
+      const startTimes = [];
+      const endTimes = [];
       
+      // Get video duration using ffprobe
       const videoDuration = await new Promise<number>((resolve) => {
         ffmpeg(filePath).ffprobe((err, data) => {
           resolve(data?.format?.duration || 0);

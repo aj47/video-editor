@@ -20,12 +20,9 @@ export const TimelineEditor = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { duration, seekTo } = useVideoController();
-  const videoBlocks = useRecoilValue(videoBlocksState);
-  const setCurrentBlockIndex = useSetRecoilState(currentBlockIndexState);
-  const { width: containerWidth } = useResizeObserver(containerRef);
-
   const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
   const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
+  const { width: containerWidth } = useResizeObserver(containerRef);
 
   const handleBlockClick = useCallback((index: number) => {
     setCurrentBlockIndex(index);
@@ -59,13 +56,15 @@ export const TimelineEditor = () => {
     });
   }, [duration, videoBlocks]);
 
+  const filePath = useRecoilValue(inputFilePathState);
+
   useEffect(() => {
-    if (containerWidth && canvasRef.current) {
+    if (containerWidth && canvasRef.current && filePath) {
       canvasRef.current.width = containerWidth;
       canvasRef.current.height = 60;
       drawTimeline();
     }
-  }, [containerWidth, drawTimeline]);
+  }, [containerWidth, drawTimeline, filePath]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current?.getBoundingClientRect();

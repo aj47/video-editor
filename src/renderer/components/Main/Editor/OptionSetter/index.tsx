@@ -8,7 +8,8 @@ import {
   SlideSize24Regular,
 } from '@fluentui/react-icons';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState, useRecoilValue } from 'recoil';
+import { inputFilePathState } from '@recoil/atoms/input-file';
 
 import { timeToSeconds, secToTimeString } from '@renderer/util';
 
@@ -211,7 +212,7 @@ export const OptionSetter = () => {
       <Styled.ItemSummery>Silence Detection</Styled.ItemSummery>
       <Styled.ItemWrapper>
         <Styled.IconButton 
-          onClick={() => window.api.detectSilence(filePath)}
+          onClick={() => window.api.detectSilence(useRecoilValue(inputFilePathState))}
           title="Detect silent segments automatically"
         >
           <CutRegular fontSize={22} style={{ verticalAlign: 'middle' }} />
