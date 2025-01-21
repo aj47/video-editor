@@ -36,28 +36,37 @@ export const TimelineEditor = () => {
     setDragHandle(handle);
     setResizeStartX(e.clientX);
     setResizeOriginalTime(handle === 'start' ? videoBlocks[index].start : videoBlocks[index].end);
-  }, [videoBlocks]);
+  }, []);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isDragging || currentBlock === -1 || !containerRef.current) return;
-    
+
     const containerRect = containerRef.current.getBoundingClientRect();
     const deltaX = e.clientX - resizeStartX;
     const timeDelta = (deltaX / containerRect.width) * duration;
-    
+
     setVideoBlocks(blocks => blocks.map((block, i) => {
       if (i !== currentBlock) return block;
-      
-      return dragHandle === 'start' 
-        ? {...block, start: Math.max(0, Math.min(block.end - 0.1, resizeOriginalTime + timeDelta))}
-        : {...block, end: Math.min(duration, Math.max(block.start + 0.1, resizeOriginalTime + timeDelta))};
+
+      return dragHandle === 'start'
+        ? { ...block, start: Math.max(0, Math.min(block.end - 0.1, resizeOriginalTime + timeDelta)) }
+        : { ...block, end: Math.min(duration, Math.max(block.start + 0.1, resizeOriginalTime + timeDelta)) };
     }));
-  }, [isDragging, currentBlock, duration, resizeStartX, resizeOriginalTime, dragHandle]);
+  }, [isDragging, currentBlock, duration, resizeStartX, resizeOriginalTime, dragHandle, setVideoBlocks]);
 
   const handleResizeEnd = useCallback(() => {
     setIsDragging(false);
     setCurrentBlock(-1);
     setDragHandle(null);
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    };
   }, []);
 
   useEffect(() => {
