@@ -1,21 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal } from '@components/Shared/Modal';
-import { ModalHeader, ShortcutList, ShortcutKey, ShortcutDesc } from '@components/Shared/Modal/Styled';
 import { HexColorPicker } from 'react-colorful';
-import { useClickOutside } from '../../../hooks/use-click-outside';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { inputFilePathState } from '@recoil/atoms/input-file';
-import { videoBlocksState, currentBlockIndexState, VideoBlockType } from '@recoil/atoms/timeline';
+import styled from 'styled-components';
+
+import { Modal } from '@components/Shared/Modal';
+import {
+  ModalHeader,
+  ShortcutList,
+  ShortcutKey,
+  ShortcutDesc,
+} from '@components/Shared/Modal/Styled';
+
 import { useResizeObserver } from '@hooks/use-resize-observer';
 import { useVideoController } from '@hooks/use-video-controller';
-import styled from 'styled-components';
+
+import { inputFilePathState } from '@recoil/atoms/input-file';
+import {
+  videoBlocksState,
+  currentBlockIndexState,
+  VideoBlockType,
+} from '@recoil/atoms/timeline';
+
+import { useClickOutside } from '../../../hooks/use-click-outside';
 import {
   Container,
   TimelineTrack,
   Block,
   ResizeHandle,
   LabelText,
-  TimelineScale
+  TimelineScale,
 } from './Styled';
 
 export const TimelineEditor = () => {
@@ -28,32 +41,64 @@ export const TimelineEditor = () => {
   const [resizeOriginalTime, setResizeOriginalTime] = useState(0);
 
   const [videoBlocks, setVideoBlocks] = useRecoilState(videoBlocksState);
-  const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(currentBlockIndexState);
+  const [currentBlockIndex, setCurrentBlockIndex] = useRecoilState(
+    currentBlockIndexState
+  );
 
-  const handleResizeStart = useCallback((e: React.MouseEvent, index: number, handle: 'start' | 'end') => {
-    e.stopPropagation();
-    setIsDragging(true);
-    setCurrentBlock(index);
-    setDragHandle(handle);
-    setResizeStartX(e.clientX);
-    setResizeOriginalTime(handle === 'start' ? videoBlocks[index].start : videoBlocks[index].end);
-  }, [videoBlocks]);
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, index: number, handle: 'start' | 'end') => {
+      e.stopPropagation();
+      setIsDragging(true);
+      setCurrentBlock(index);
+      setDragHandle(handle);
+      setResizeStartX(e.clientX);
+      setResizeOriginalTime(
+        handle === 'start' ? videoBlocks[index].start : videoBlocks[index].end
+      );
+    },
+    [videoBlocks]
+  );
 
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || currentBlock === -1 || !containerRef.current) return;
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging || currentBlock === -1 || !containerRef.current) return;
 
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const deltaX = e.clientX - resizeStartX;
-    const timeDelta = (deltaX / containerRect.width) * duration;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const deltaX = e.clientX - resizeStartX;
+      const timeDelta = (deltaX / containerRect.width) * duration;
 
-    setVideoBlocks(blocks => blocks.map((block, i) => {
-      if (i !== currentBlock) return block;
+      setVideoBlocks((blocks) =>
+        blocks.map((block, i) => {
+          if (i !== currentBlock) return block;
 
-      return dragHandle === 'start'
-        ? { ...block, start: Math.max(0, Math.min(block.end - 0.1, resizeOriginalTime + timeDelta)) }
-        : { ...block, end: Math.min(duration, Math.max(block.start + 0.1, resizeOriginalTime + timeDelta)) };
-    }));
-  }, [isDragging, currentBlock, duration, resizeStartX, resizeOriginalTime, dragHandle, setVideoBlocks]);
+          return dragHandle === 'start'
+            ? {
+                ...block,
+                start: Math.max(
+                  0,
+                  Math.min(block.end - 0.1, resizeOriginalTime + timeDelta)
+                ),
+              }
+            : {
+                ...block,
+                end: Math.min(
+                  duration,
+                  Math.max(block.start + 0.1, resizeOriginalTime + timeDelta)
+                ),
+              };
+        })
+      );
+    },
+    [
+      isDragging,
+      currentBlock,
+      duration,
+      resizeStartX,
+      resizeOriginalTime,
+      dragHandle,
+      setVideoBlocks,
+    ]
+  );
 
   const handleResizeEnd = useCallback(() => {
     setIsDragging(false);
@@ -80,49 +125,64 @@ export const TimelineEditor = () => {
   }, [handleResizeMove, handleResizeEnd]);
   const { width: containerWidth } = useResizeObserver(containerRef);
 
-  const handleBlockClick = useCallback((index: number, e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickPosition = (e.clientX - rect.left) / rect.width;
-    const block = videoBlocks[index];
-    const clickedTime = block.start + (block.end - block.start) * clickPosition;
-    
-    seekTo(clickedTime);
-    setCurrentBlockIndex(index);
-  }, [setCurrentBlockIndex, seekTo, videoBlocks]);
+  const handleBlockClick = useCallback(
+    (index: number, e: React.MouseEvent) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickPosition = (e.clientX - rect.left) / rect.width;
+      const block = videoBlocks[index];
+      const clickedTime =
+        block.start + (block.end - block.start) * clickPosition;
 
-  const mergeBlocks = useCallback((index: number) => {
-    setVideoBlocks(blocks => {
-      if (index < 0 || index >= blocks.length - 1) return blocks;
-      const newBlocks = [...blocks];
-      const mergedBlock = {
-        ...newBlocks[index],
-        end: newBlocks[index + 1].end,
-        label: newBlocks[index].label
-      };
-      newBlocks.splice(index, 2, mergedBlock);
-      return newBlocks;
-    });
-    setCurrentBlockIndex(-1);
-  }, [setVideoBlocks, setCurrentBlockIndex]);
+      seekTo(clickedTime);
+      setCurrentBlockIndex(index);
+    },
+    [setCurrentBlockIndex, seekTo, videoBlocks]
+  );
+
+  const mergeBlocks = useCallback(
+    (index: number) => {
+      setVideoBlocks((blocks) => {
+        if (index < 0 || index >= blocks.length - 1) return blocks;
+        const newBlocks = [...blocks];
+        const mergedBlock = {
+          ...newBlocks[index],
+          end: newBlocks[index + 1].end,
+          label: newBlocks[index].label,
+        };
+        newBlocks.splice(index, 2, mergedBlock);
+        return newBlocks;
+      });
+      setCurrentBlockIndex(-1);
+    },
+    [setVideoBlocks, setCurrentBlockIndex]
+  );
 
   const filePath = useRecoilValue(inputFilePathState);
 
   const [showHelp, setShowHelp] = useState(false);
-  const [colorPickerPos, setColorPickerPos] = useState<{x: number; y: number} | null>(null);
+  const [colorPickerPos, setColorPickerPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [colorPickerBlock, setColorPickerBlock] = useState<number>(-1);
-  const colorPickerRef = useClickOutside<HTMLDivElement>(() => setColorPickerPos(null));
+  const colorPickerRef = useClickOutside<HTMLDivElement>(() =>
+    setColorPickerPos(null)
+  );
 
-  const handleColorChange = useCallback((color: string) => {
-    setVideoBlocks(blocks => blocks.map((b, i) => 
-      i === colorPickerBlock ? {...b, color} : b
-    ));
-  }, [colorPickerBlock]);
+  const handleColorChange = useCallback(
+    (color: string) => {
+      setVideoBlocks((blocks) =>
+        blocks.map((b, i) => (i === colorPickerBlock ? { ...b, color } : b))
+      );
+    },
+    [colorPickerBlock]
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
         e.preventDefault();
-        setEditMode(mode => mode === 'cut' ? 'label' : 'cut');
+        setEditMode((mode) => (mode === 'cut' ? 'label' : 'cut'));
       }
       if (e.key === '?') {
         setShowHelp(true);
@@ -163,10 +223,13 @@ export const TimelineEditor = () => {
             background: 'white',
             padding: '8px',
             borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           }}
         >
-          <HexColorPicker color={videoBlocks[colorPickerBlock]?.color || '#FF5252'} onChange={handleColorChange} />
+          <HexColorPicker
+            color={videoBlocks[colorPickerBlock]?.color || '#FF5252'}
+            onChange={handleColorChange}
+          />
         </div>
       )}
       <TimelineTrack>
@@ -174,7 +237,10 @@ export const TimelineEditor = () => {
         {videoBlocks.map((block, index) => {
           const validDuration = duration > 0 ? duration : 1; // Prevent division by zero
           const left = Math.min(99.9, (block.start / validDuration) * 100);
-          const width = Math.min(100 - left, ((block.end - block.start) / validDuration) * 100);
+          const width = Math.min(
+            100 - left,
+            ((block.end - block.start) / validDuration) * 100
+          );
 
           return (
             <Block
@@ -182,38 +248,41 @@ export const TimelineEditor = () => {
               $width={width}
               $left={left}
               $active={block.active}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleBlockClick(index, e);
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setColorPickerBlock(index);
-              setColorPickerPos({x: e.clientX, y: e.clientY});
-            }}
-          >
-            <ResizeHandle 
-              $side="left" 
-              onMouseDown={(e) => handleResizeStart(e, index, 'start')}
-            />
-            <LabelText
-              onDoubleClick={() => {
-                const newLabel = prompt('Enter new label:', block.label);
-                if (newLabel) {
-                  setVideoBlocks(blocks => blocks.map((b, i) => 
-                    i === index ? {...b, label: newLabel} : b
-                  ));
-                }
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBlockClick(index, e);
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setColorPickerBlock(index);
+                setColorPickerPos({ x: e.clientX, y: e.clientY });
               }}
             >
-              {block.label}
-            </LabelText>
-            <ResizeHandle 
-              $side="right" 
-              onMouseDown={(e) => handleResizeStart(e, index, 'end')}
-            />
-          </Block>
-        ))}
+              <ResizeHandle
+                $side="left"
+                onMouseDown={(e) => handleResizeStart(e, index, 'start')}
+              />
+              <LabelText
+                onDoubleClick={() => {
+                  const newLabel = prompt('Enter new label:', block.label);
+                  if (newLabel) {
+                    setVideoBlocks((blocks) =>
+                      blocks.map((b, i) =>
+                        i === index ? { ...b, label: newLabel } : b
+                      )
+                    );
+                  }
+                }}
+              >
+                {block.label}
+              </LabelText>
+              <ResizeHandle
+                $side="right"
+                onMouseDown={(e) => handleResizeStart(e, index, 'end')}
+              />
+            </Block>
+          );
+        })}
       </TimelineTrack>
     </Container>
   );
