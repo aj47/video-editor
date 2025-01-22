@@ -25,12 +25,19 @@ export const SeekBar = () => {
   const onChange = useCallback(
     ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
       const newTime = parseFloat(value);
+      console.log('[SeekBar] Seeking to:', newTime);
+      console.log('[SeekBar] Video blocks:', videoBlocks);
+      
       const isInSilentBlock = videoBlocks.some(block => 
-        newTime >= block.start && newTime <= block.end
+        newTime >= block.start && newTime < block.end // Use < instead of <= to allow seeking to block ends
       );
+      
+      console.log(`[SeekBar] ${isInSilentBlock ? 'In' : 'Not in'} silent block`);
       
       if (!isInSilentBlock) {
         seekTo(newTime);
+      } else {
+        console.warn('[SeekBar] Prevented seek into silent block');
       }
     },
     [seekTo, videoBlocks]

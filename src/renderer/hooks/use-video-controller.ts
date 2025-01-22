@@ -102,42 +102,58 @@ export const useVideoController = () => {
 
     const handleLoadedmetadata = () => {
       setDuration(videoRef.current?.duration || 0);
+    };
 
-      const timeUpdate = () => {
-        const currentTime = videoRef.current?.currentTime || 0;
-        setCurrentTime(currentTime);
+    const timeUpdate = () => {
+      const video = videoRef.current;
+      if (!video) return;
 
-        if (skipSilence && videoBlocks.length > 0) {
-          const currentBlock = videoBlocks.find(block => 
-            currentTime >= block.start && currentTime <= block.end
-          );
+      const currentTime = video.currentTime;
+      setCurrentTime(currentTime);
+
+      if (skipSilence && videoBlocks.length > 0) {
+        console.log('[SilenceSkip] Current time:', currentTime);
+        console.log('[SilenceSkip] Video blocks:', videoBlocks);
+        
+        const currentBlock = videoBlocks.find(block => 
+          currentTime >= block.start && currentTime <= block.end
+        );
+
+        if (currentBlock) {
+          console.log(`[SilenceSkip] In silent block ${currentBlock.start}-${currentBlock.end}, skipping...`);
+          const wasPlaying = !video.paused;
           
-          if (currentBlock) {
-            seekTo(currentBlock.end);
+          // Pause before seeking to prevent audio glitches
+          pause();
+          
+          // Seek to end of block + small offset to prevent infinite loop
+          const skipTime = currentBlock.end + 0.001;
+          console.log(`[SilenceSkip] Seeking to ${skipTime}`);
+          seekTo(Math.min(skipTime, duration));
+          
+          // Resume playback if needed
+          if (wasPlaying) {
+            requestAnimationFrame(() => play());
           }
         }
-        
-        requestAnimationFrame(timeUpdate);
-      };
-      requestAnimationFrame(timeUpdate);
+      }
     };
+
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
     videoRef.current?.addEventListener('loadedmetadata', handleLoadedmetadata);
+    videoRef.current?.addEventListener('timeupdate', timeUpdate);
     videoRef.current?.addEventListener('play', handlePlay);
     videoRef.current?.addEventListener('pause', handlePause);
 
     return () => {
-      videoRef.current?.removeEventListener(
-        'loadedmetadata',
-        handleLoadedmetadata
-      );
+      videoRef.current?.removeEventListener('timeupdate', timeUpdate);
+      videoRef.current?.removeEventListener('loadedmetadata', handleLoadedmetadata);
       videoRef.current?.removeEventListener('play', handlePlay);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       videoRef.current?.removeEventListener('pause', handlePause);
     };
-  }, [filePath, videoRef]);
+  }, [filePath, videoRef, skipSilence, videoBlocks, duration, pause, play, seekTo]);
 
   return {
     isPlaying,
