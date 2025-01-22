@@ -25,3 +25,8 @@ export const Input = styled.input`
     border-radius: 6px;
   }
 `;
+
+export const SeekBarWrapper = styled.div`
+  width: 100%;
+  margin-top: 8px;
+`;
