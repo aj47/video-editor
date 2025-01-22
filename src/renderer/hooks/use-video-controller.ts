@@ -112,27 +112,20 @@ export const useVideoController = () => {
       setCurrentTime(currentTime);
 
       if (skipSilence && videoBlocks.length > 0) {
-        console.log('[SilenceSkip] Current time:', currentTime);
-        console.log('[SilenceSkip] Video blocks:', videoBlocks);
-        
         const isInSilentRegion = !videoBlocks.some(block => 
           currentTime >= block.start && currentTime < block.end
         );
 
         if (isInSilentRegion) {
-          console.log('[SilenceSkip] In silent region, finding next active block...');
-          
           // Find first block that starts after current time
           const nextBlock = videoBlocks.find(block => block.start > currentTime);
           
           if (nextBlock) {
-            console.log(`[SilenceSkip] Jumping to next active block at ${nextBlock.start}`);
             const wasPlaying = !video.paused;
             pause();
             seekTo(nextBlock.start);
             if (wasPlaying) play();
           } else {
-            console.log('[SilenceSkip] No subsequent blocks, pausing');
             pause();
           }
         }

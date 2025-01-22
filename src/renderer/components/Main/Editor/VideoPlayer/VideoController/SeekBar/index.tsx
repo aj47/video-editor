@@ -25,15 +25,11 @@ export const SeekBar = () => {
   const onChange = useCallback(
     ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
       const newTime = parseFloat(value);
-      console.log('[SeekBar] Seeking to:', newTime);
-      console.log('[SeekBar] Video blocks:', videoBlocks);
-      
       const isInSilentRegion = !videoBlocks.some(block => 
         newTime >= block.start && newTime < block.end
       );
       
       if (isInSilentRegion) {
-        console.warn('[SeekBar] Prevented seek into silent region');
       } else {
         seekTo(newTime);
       }
