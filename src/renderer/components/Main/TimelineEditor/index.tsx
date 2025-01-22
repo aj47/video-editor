@@ -133,12 +133,23 @@ export const TimelineEditor = () => {
   const filePath = useRecoilValue(inputFilePathState);
 
   useEffect(() => {
+    console.log('[TimelineDebug] Container width:', containerWidth);
+    console.log('[TimelineDebug] File path:', filePath);
+    console.log('[TimelineDebug] Video blocks:', videoBlocks);
+    
     if (containerWidth && canvasRef.current && filePath) {
+      console.log('[TimelineDebug] Initializing canvas with width:', containerWidth);
       canvasRef.current.width = containerWidth;
       canvasRef.current.height = 60;
       drawTimeline();
+    } else {
+      console.warn('[TimelineDebug] Missing requirements:',
+        !containerWidth ? 'containerWidth' : '',
+        !canvasRef.current ? 'canvasRef' : '',
+        !filePath ? 'filePath' : ''
+      );
     }
-  }, [containerWidth, drawTimeline, filePath]);
+  }, [containerWidth, drawTimeline, filePath, videoBlocks]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current?.getBoundingClientRect();

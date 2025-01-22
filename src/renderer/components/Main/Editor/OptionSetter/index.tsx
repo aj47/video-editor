@@ -227,12 +227,14 @@ export const OptionSetter = () => {
             try {
               const blocks = await window.api.detectSilence(filePath);
               console.log('[UI] Received silence detection blocks:', blocks);
-              setVideoBlocks(blocks.map((b, i) => ({
+              const mappedBlocks = blocks.map((b, i) => ({
                 ...b,
-                active: true,  // Non-silent blocks are active by default
+                active: true,
                 label: `Segment ${i + 1}`,
-                color: '#4CAF50'  // Green for active/non-silent
-              })));
+                color: '#4CAF50'
+              }));
+              console.log('[SilenceDetection] Setting video blocks:', mappedBlocks);
+              setVideoBlocks(mappedBlocks);
             } catch (err) {
               console.error('[UI] Silence detection failed:', err);
             }

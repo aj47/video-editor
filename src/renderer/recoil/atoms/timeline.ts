@@ -20,7 +20,13 @@ export type VideoBlockType = {
 
 export const videoBlocksState = atom<VideoBlockType[]>({
   key: 'videoBlocksState',
-  default: [],
+  default: [{
+    start: 0,
+    end: 5,
+    active: true,
+    label: 'Debug Block',
+    color: '#4CAF50'
+  }], // Default test block
 });
 
 // Helper selector for derived timeline state
