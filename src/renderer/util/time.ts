@@ -9,6 +9,12 @@ const formatMs = (ms: number | string) => {
   return `${ms.toString()}000`.slice(0, 3);
 };
 
+export const formatTimeShort = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 export const timeToSeconds = (time: number | string) => {
   const numTime = Number(time);
   const match = typeof time === 'string' ? time.match(timeFormat) : null;
