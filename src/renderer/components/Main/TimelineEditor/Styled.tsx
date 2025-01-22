@@ -52,6 +52,7 @@ export const Block = styled.div<{
   $left: number;
   $active: boolean;
 }>`
+  zindex: 999;
   position: absolute;
   height: 100%;
   width: ${({ $width }) => $width}%;
@@ -60,10 +61,10 @@ export const Block = styled.div<{
   transition: all 0.2s;
   border-radius: 4px;
   overflow: hidden;
-  background: ${({ $active, theme }) => 
+  background: ${({ $active, theme }) =>
     $active ? theme.palette.success : theme.palette.error};
   border: 1px solid ${({ theme }) => theme.palette.border};
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover {
     filter: brightness(1.1);
