@@ -184,7 +184,7 @@ export const TimelineEditor = () => {
               $active={block.active}
             onClick={(e) => {
               e.stopPropagation();
-              handleBlockClick(index);
+              handleBlockClick(index, e);
             }}
             onContextMenu={(e) => {
               e.preventDefault();
