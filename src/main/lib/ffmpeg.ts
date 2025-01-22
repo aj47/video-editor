@@ -95,32 +95,55 @@ export const detectSilence = async (
         const silenceRanges: Array<[number, number]> = [];
         let currentStart: number | null = null;
 
-        output.split('\n').forEach(line => {
-          if (line.includes('silence_start')) {
-            const time = parseFloat(line.split('silence_start: ')[1].split(' ')[0]);
-            currentStart = time;
-            log.debug(`[detectSilence] Found silence start at ${time}s`);
-          } else if (line.includes('silence_end') && currentStart !== null) {
-            const time = parseFloat(line.split('silence_end: ')[1].split(' ')[0]);
-            if (time > currentStart) {
-              silenceRanges.push([currentStart, time]);
-              log.debug(`[detectSilence] Found silence end at ${time}s`);
+        // Buffer for accumulating multi-line output
+        let buffer = '';
+        
+        // Process each chunk while handling multi-line outputs
+        output.split('\n').forEach(chunk => {
+          buffer += chunk;
+          
+          while (buffer.length > 0) {
+            const lineEnd = buffer.indexOf('\n');
+            if (lineEnd === -1) break;
+            
+            const line = buffer.slice(0, lineEnd).trim();
+            buffer = buffer.slice(lineEnd + 1);
+
+            log.debug(`[detectSilence] Processing line: ${line}`);
+            
+            const silenceStartMatch = line.match(/silence_start: (\d+\.?\d*)/);
+            const silenceEndMatch = line.match(/silence_end: (\d+\.?\d*)/);
+
+            if (silenceStartMatch) {
+              currentStart = parseFloat(silenceStartMatch[1]);
+              log.debug(`[detectSilence] Found silence_start at ${currentStart}s`);
+            } else if (silenceEndMatch && currentStart !== null) {
+              const endTime = parseFloat(silenceEndMatch[1]);
+              if (endTime > currentStart) {
+                silenceRanges.push([currentStart, endTime]);
+                log.debug(`[detectSilence] Found silence_end at ${endTime}s (duration: ${endTime - currentStart}s)`);
+              } else {
+                log.debug(`[detectSilence] Discarding invalid silence range ${currentStart}-${endTime}s`);
+              }
+              currentStart = null;
             }
-            currentStart = null;
           }
         });
 
-        // Sort and process all detected silences without filtering
+        // Sort and process all detected silences
         silenceRanges.sort((a, b) => a[0] - b[0]);
         const filteredRanges = silenceRanges;
-        log.debug(`[detectSilence] Raw silence ranges: ${JSON.stringify(filteredRanges)}`);
+        log.info(`[detectSilence] Found ${silenceRanges.length} raw silence ranges`);
+        log.debug(`[detectSilence] Raw silence ranges:\n${JSON.stringify(filteredRanges, null, 2)}`);
 
         // Create blocks array with proper buffer handling
         const blocks: Array<{ start: number; end: number }> = [];
         let currentPos = 0.0;
-        const nonSilenceBuffer = 0.1;  // Reduced from 0.3
-        const minNonSilenceDuration = 0.3;  // Reduced from 0.5
-        const maxGapToBridge = 1.0;  // Reduced from 2.0
+        // Use parameters instead of hardcoded values
+        const minNonSilenceDuration = 0.3;
+        const maxGapToBridge = 1.0;
+        
+        log.debug(`[detectSilence] Using buffer settings - nonSilenceBuffer: ${nonSilenceBuffer}s, minNonSilenceDuration: ${minNonSilenceDuration}s, maxGapToBridge: ${maxGapToBridge}s`);
 
         // Process all silence ranges
         for (const [silenceStart, silenceEnd] of filteredRanges) {
