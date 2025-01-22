@@ -5,6 +5,7 @@ import * as Styled from './Styled';
 
 type Props = {
   isVisible: boolean;
+  onClose?: () => void;
 };
 
 export const Modal: FC<Props> = ({ children, isVisible }) => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Modal } from '@components/Shared/Modal';
 import { HexColorPicker } from 'react-colorful';
 import { useClickOutside } from '../../../hooks/use-click-outside';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -145,6 +146,7 @@ export const TimelineEditor = () => {
     seekTo(clickTime);
   };
 
+  const [showHelp, setShowHelp] = useState(false);
   const [colorPickerPos, setColorPickerPos] = useState<{x: number; y: number} | null>(null);
   const [colorPickerBlock, setColorPickerBlock] = useState<number>(-1);
   const colorPickerRef = useClickOutside<HTMLDivElement>(() => setColorPickerPos(null));
@@ -155,8 +157,40 @@ export const TimelineEditor = () => {
     ));
   }, [colorPickerBlock]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setEditMode(mode => mode === 'cut' ? 'label' : 'cut');
+      }
+      if (e.key === '?') {
+        setShowHelp(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <Container ref={containerRef}>
+      <Modal isVisible={showHelp} onClose={() => setShowHelp(false)}>
+        <ModalHeader>Keyboard Shortcuts</ModalHeader>
+        <ShortcutList>
+          <ShortcutKey>Space</ShortcutKey>
+          <ShortcutDesc>Play/Pause video</ShortcutDesc>
+          <ShortcutKey>Tab</ShortcutKey>
+          <ShortcutDesc>Toggle cut/label mode</ShortcutDesc>
+          <ShortcutKey>← →</ShortcutKey>
+          <ShortcutDesc>Navigate blocks</ShortcutDesc>
+          <ShortcutKey>L</ShortcutKey>
+          <ShortcutDesc>Label selected block</ShortcutDesc>
+          <ShortcutKey>M</ShortcutKey>
+          <ShortcutDesc>Merge selected blocks</ShortcutDesc>
+          <ShortcutKey>?</ShortcutKey>
+          <ShortcutDesc>Show this help</ShortcutDesc>
+        </ShortcutList>
+      </Modal>
       {colorPickerPos && (
         <div
           ref={colorPickerRef}

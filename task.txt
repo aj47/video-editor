@@ -19,12 +19,19 @@ New Expected Behavior:
   • Use precise seeking with -ss/-to for each segment
   • Apply all existing options (crop, palette, etc.) to each segment
 
- Remaining Changes Needed:
+ Completed Changes:
 
-  1 UI Components Missing from React App:
+  1 UI Components Implemented:
 
-  • **Trigger Button:** Add a button (e.g., in
- `src/renderer/components/Main/OptionSetter/index.tsx`) to initiate silence detection.
+  • **Trigger Button:** Added silence detection button in OptionSetter
+  • **Timeline Interaction:** Implemented block selection, active state toggling, resizing, and color labeling
+  • **Block labeling color picker UI:** Added right-click color picker with react-colorful
+  • **Keyboard shortcut help modal:** Added ? key to show help dialog
+  • **Export progress modal:** Existing ConvertStatusModal handles progress updates
+
+ Remaining Changes:
+
+  1 UI Components Needed:
      * Relevant files:
          * `src/renderer/components/Main/OptionSetter/index.tsx`
          * `src/renderer/components/Main/OptionSetter/Styled.tsx`
