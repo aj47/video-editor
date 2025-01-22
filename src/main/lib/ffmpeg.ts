@@ -133,38 +133,39 @@ export const detectSilence = async (
 
         // Create blocks array with proper buffer handling
         const blocks: Array<{ start: number; end: number }> = [];
-        let currentPos = 0.0;
         // Use parameters instead of hardcoded values
         const minNonSilenceDuration = 0.3;
         const maxGapToBridge = 1.0;
+        
+        // Handle initial segment before first silence
+        if (filteredRanges.length > 0 && filteredRanges[0][0] > 0) {
+          const initialEnd = filteredRanges[0][0] - nonSilenceBuffer;
+          if (initialEnd > 0) {
+            blocks.push({ start: 0, end: initialEnd });
+          }
+        }
         
         log.debug(`[detectSilence] Using buffer settings - nonSilenceBuffer: ${nonSilenceBuffer}s, minNonSilenceDuration: ${minNonSilenceDuration}s, maxGapToBridge: ${maxGapToBridge}s`);
 
         // Process all silence ranges to find non-silence segments
         let lastEnd = 0;
         for (const [silenceStart, silenceEnd] of filteredRanges) {
-          // Calculate non-silence segment before this silence
+          // Calculate non-silence segment between silences
           const segmentStart = Math.max(lastEnd, 0);
           const segmentEnd = silenceStart;
           
           // Apply buffer to create usable blocks
-          const bufferedStart = Math.max(0, segmentStart - nonSilenceBuffer);
-          const bufferedEnd = Math.min(duration, segmentEnd + nonSilenceBuffer);
+          const bufferedStart = segmentStart;
+          const bufferedEnd = segmentEnd + nonSilenceBuffer;
           
           // Only create block if duration meets minimum
           if (bufferedEnd - bufferedStart >= minNonSilenceDuration) {
             blocks.push({ 
-              start: bufferedStart, 
+              start: bufferedStart,
               end: bufferedEnd
             });
             log.debug(`[detectSilence] Created non-silence block: ${bufferedStart}s - ${bufferedEnd}s`);
           }
-          
-          // Create a block for the silence itself
-          blocks.push({
-            start: silenceStart,
-            end: silenceEnd
-          });
           
           lastEnd = silenceEnd;
         }
@@ -184,19 +185,17 @@ export const detectSilence = async (
           }
         }
 
-        // Handle final non-silence segment
-        if (currentPos < duration) {
-          const finalStart = currentPos;
-          const bufferedEnd = Math.min(duration, finalStart + nonSilenceBuffer);
+        // Handle final segment after last silence
+        if (lastEnd < duration) {
+          const finalStart = lastEnd;
+          const bufferedEnd = duration;
           
           if (bufferedEnd - finalStart >= minNonSilenceDuration) {
-            blocks.push({ start: finalStart, end: duration });
-            log.debug(`[detectSilence] Created final non-silence block: ${finalStart}s - ${duration}s`);
-          } else {
-            log.debug(`[detectSilence] Extending previous block to cover final segment`);
-            if (blocks.length > 0) {
-              blocks[blocks.length - 1].end = duration;
-            }
+            blocks.push({ 
+              start: finalStart, 
+              end: bufferedEnd 
+            });
+            log.debug(`[detectSilence] Created final non-silence block: ${finalStart}s - ${bufferedEnd}s`);
           }
         }
 
