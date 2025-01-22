@@ -4,7 +4,7 @@ import { FfmpegCommand } from 'fluent-ffmpeg';
 
 import { ConvertOption, ConvertStatus } from '@shared/types';
 
-import { convert, inspectFile } from './lib/ffmpeg';
+import { convert, inspectFile, detectSilence } from './lib/ffmpeg';
 
 let ffcommand: FfmpegCommand | undefined;
 
