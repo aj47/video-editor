@@ -1,0 +1,151 @@
+New Expected Behavior:
+
+  1 Silence Detection:
+
+  • Automatically detect silent segments using FFmpeg's silencedetect filter
+  • Split video into non-silent blocks with configurable buffer zones (0.5s default)
+  • Mark silent blocks as "to-remove" (red) by default
+
+  2 Block Editing:
+
+  • Visual timeline showing detected blocks
+  • Toggle between "cut" (remove silence) and "label" (categorize content) modes
+  • Keyboard shortcuts for navigation (arrows) and labeling (letter keys)
+  • Merge adjacent blocks with same label
+
+  3 Conversion:
+
+  • Only process active (non-red) blocks when converting to GIF
+  • Use precise seeking with -ss/-to for each segment
+  • Apply all existing options (crop, palette, etc.) to each segment
+
+ Remaining Changes Needed:
+
+  1 UI Components Missing from React App:
+
+  • **Trigger Button:** Add a button (e.g., in
+ `src/renderer/components/Main/OptionSetter/index.tsx`) to initiate silence detection.
+     * Relevant files:
+         * `src/renderer/components/Main/OptionSetter/index.tsx`
+         * `src/renderer/components/Main/OptionSetter/Styled.tsx`
+  • **Timeline Interaction:** Enhance `src/renderer/components/Main/TimelineEditor/index.tsx`
+ to:
+     * Populate `videoBlocksState` with silence detection results.
+     * Allow block selection (using `currentBlockIndexState`).
+     * Allow toggling block `active` state.
+     * Allow adjusting block `start` and `end` times.
+     * Visualize active/inactive blocks differently (e.g., red/green).
+     * Consider drag-and-drop for block rearrangement.
+     * Relevant files:
+         * `src/renderer/components/Main/TimelineEditor/index.tsx`
+         * `src/renderer/components/Main/TimelineEditor/Styled.tsx`
+         * `src/renderer/recoil/atoms/status.ts`
+         * `src/renderer/recoil/atoms/timeline.ts`
+         * `src/renderer/hooks/use-video-controller.ts`
+  • **Block labeling color picker UI**
+     * Relevant files:
+         * `src/renderer/components/Main/TimelineEditor/index.tsx`
+         * `src/renderer/components/Main/TimelineEditor/Styled.tsx`
+  • **Keyboard shortcut help modal**
+     * Relevant files:
+         * `src/renderer/components/Shared/Modal/index.tsx`
+         * `src/renderer/components/Shared/Modal/Styled.tsx`
+  • **Export progress modal with detailed status**
+     * Relevant files:
+         * `src/renderer/components/Main/ConvertStatusModal/index.tsx`
+         * `src/renderer/components/Main/ConvertStatusModal/Styled.tsx`
+         * `src/renderer/components/Main/ConvertStatusModal/ProgressBar/index.tsx`
+         * `src/renderer/components/Main/ConvertStatusModal/ProgressBar/Styled.tsx`
+
+  2 State Management:
+
+  • Add Recoil atoms for:
+
+     export const timelineZoomState = atom<number>({
+       key: 'timelineZoomState',
+       default: 1
+     });
+
+     export const currentBlockIndexState = atom<number>({
+       key: 'currentBlockIndexState',
+       default: -1
+     });
+
+     * Relevant files:
+         * `src/renderer/recoil/atoms/timeline.ts`
+
+  • Manage state for:
+     * Active/inactive blocks.
+     * Block labels (if implementing labeling).
+     * Current editor mode ('cut' or 'label').
+     * Relevant files:
+         * `src/renderer/recoil/atoms/timeline.ts`
+         * `src/renderer/recoil/atoms/status.ts`
+
+  3 IPC Handlers Needed:
+
+  • **Trigger Silence Detection:** Handle the button click in the renderer process, call
+ `window.api.detectSilence`, and update `videoBlocksState` with the results.
+     * Relevant files:
+         * `src/renderer/components/Main/OptionSetter/index.tsx`
+         * `src/main/ipc-register.ts`
+         * `src/main/lib/ffmpeg.ts`
+         * `src/renderer/recoil/atoms/status.ts`
+  • **Export functionality that respects block labels and active states**
+     * Relevant files:
+         * `src/main/ipc-register.ts`
+         * `src/main/lib/ffmpeg.ts`
+         * `src/renderer/recoil/atoms/status.ts`
+         * `src/renderer/recoil/atoms/timeline.ts`
+  • **Block merging/editing operations**
+     * Relevant files:
+         * `src/main/ipc-register.ts`
+         * `src/renderer/components/Main/TimelineEditor/index.tsx`
+         * `src/renderer/recoil/atoms/timeline.ts`
+  • **Label management persistence**
+     * Relevant files:
+         * `src/main/ipc-register.ts`
+         * `src/renderer/recoil/atoms/timeline.ts`
+
+  4 FFmpeg Changes:
+
+  • Update conversion to handle multiple segments:
+
+     segments.flatMap(({ start, end }) => [
+       `-ss ${start}`,
+       `-to ${end}`,
+       '-c copy',
+       '-avoid_negative_ts make_zero'
+     ])
+
+     * Relevant files:
+         * `src/main/lib/ffmpeg.ts`
+
+  • Add segment merging logic similar to sample.html's export functionality
+     * Relevant files:
+         * `src/main/lib/ffmpeg.ts`
+
+  5 Keyboard Shortcuts:
+
+  • Implement global key handlers for:
+     • Space: Play/pause
+     • Tab: Toggle edit mode
+     • Arrow keys: Navigate blocks
+     • Letter keys: Apply labels
+     * Relevant files:
+         * `src/renderer/hooks/use-video-controller.ts`
+
+ Key Differences from sample.html:
+
+  1 The React app needs equivalent components for:
+
+  • TimelineEditor (canvas-based)
+  • LabelManagerModal
+  • ExportProgressModal
+  • KeyboardShortcutHelp
+
+  2 The conversion process should now:
+
+  • Respect both the automatically detected silent blocks AND user-edited blocks
+  • Allow combining multiple non-contiguous segments into final GIF
+  • Support different output strategies (single GIF vs. multiple files by label)
