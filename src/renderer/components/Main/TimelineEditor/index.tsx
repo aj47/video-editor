@@ -217,3 +217,57 @@ export const TimelineEditor = () => {
     </Container>
   );
 };
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { useCallback, useMemo } from 'react';
+import { theme } from '@components/Styles/theme';
+import {
+  currentBlockIndexState,
+  timelineState,
+  videoBlocksState,
+  VideoBlockType
+} from '@recoil/atoms/timeline';
+import * as Styled from './Styled';
+
+export const TimelineEditor = () => {
+  const { blocks, totalDuration, zoom } = useRecoilValue(timelineState);
+  const setCurrentBlockIndex = useSetRecoilState(currentBlockIndexState);
+  const setVideoBlocks = useSetRecoilState(videoBlocksState);
+
+  const handleBlockClick = useCallback((index: number) => {
+    setCurrentBlockIndex(index);
+    setVideoBlocks(prev => prev.map((block, i) => ({
+      ...block,
+      active: i === index ? !block.active : block.active
+    })));
+  }, [setCurrentBlockIndex, setVideoBlocks]);
+
+  const blockElements = useMemo(() => 
+    blocks.map((block, index) => {
+      const left = (block.start / totalDuration) * 100 * zoom;
+      const width = ((block.end - block.start) / totalDuration) * 100 * zoom;
+      
+      return (
+        <Styled.Block
+          key={index}
+          $width={width}
+          $left={left}
+          $active={block.active}
+          onClick={() => handleBlockClick(index)}
+          style={{ backgroundColor: block.color || theme.palette.errorRed }}
+        >
+          <Styled.LabelText>{block.label}</Styled.LabelText>
+          <Styled.ResizeHandle $side="left" />
+          <Styled.ResizeHandle $side="right" />
+        </Styled.Block>
+      );
+    })
+  , [blocks, totalDuration, zoom, handleBlockClick]);
+
+  return (
+    <Styled.Container>
+      <Styled.TimelineTrack>
+        {blockElements}
+      </Styled.TimelineTrack>
+    </Styled.Container>
+  );
+};

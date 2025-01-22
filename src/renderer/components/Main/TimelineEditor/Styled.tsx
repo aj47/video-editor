@@ -42,7 +42,18 @@ export const Block = styled.div<{
   width: ${({ $width }) => $width}%;
   left: ${({ $left }) => $left}%;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  border-radius: 4px;
+  overflow: hidden;
+  opacity: ${({ $active }) => ($active ? 1 : 0.6)};
+  transform: scale(${({ $active }) => ($active ? 1.02 : 1)});
+  box-shadow: ${({ $active }) =>
+    $active ? `0 2px 8px rgba(0,0,0,0.2)` : 'none'};
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.02);
+  }
 `;
 
 export const Canvas = styled.canvas`
