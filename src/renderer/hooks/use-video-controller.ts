@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { editorModeState } from '@recoil/atoms/status';
 import { videoBlocksState, currentBlockIndexState } from '@recoil/atoms/timeline';
+import { boolOptionsStateFamily } from '@recoil/atoms/options';
 
 import { inputFilePathState, playerRefState } from '@recoil/atoms';
 
@@ -12,6 +13,7 @@ export const useVideoController = () => {
 
   const filePath = useRecoilValue(inputFilePathState);
   const videoRef = useRecoilValue(playerRefState);
+  const skipSilence = useRecoilValue(boolOptionsStateFamily('option/skipSilence'));
 
   const play = useCallback(() => {
     if (!videoRef.current) return;
@@ -102,7 +104,19 @@ export const useVideoController = () => {
       setDuration(videoRef.current?.duration || 0);
 
       const timeUpdate = () => {
-        setCurrentTime(videoRef.current?.currentTime || 0);
+        const currentTime = videoRef.current?.currentTime || 0;
+        setCurrentTime(currentTime);
+
+        if (skipSilence && videoBlocks.length > 0) {
+          const currentBlock = videoBlocks.find(block => 
+            currentTime >= block.start && currentTime <= block.end
+          );
+          
+          if (currentBlock) {
+            seekTo(currentBlock.end);
+          }
+        }
+        
         requestAnimationFrame(timeUpdate);
       };
       requestAnimationFrame(timeUpdate);

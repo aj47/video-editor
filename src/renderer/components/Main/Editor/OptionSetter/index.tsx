@@ -6,6 +6,7 @@ import {
   DocumentRegular,
   FolderRegular,
   SlideSize24Regular,
+  SpeakerMuteRegular,
 } from '@fluentui/react-icons';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useSetRecoilState, useRecoilValue } from 'recoil';
@@ -42,6 +43,9 @@ export const OptionSetter = () => {
   );
   const [paletteState, setPaletteState] = useRecoilState(
     boolOptionsStateFamily('option/palette')
+  );
+  const [skipSilence, setSkipSilence] = useRecoilState(
+    boolOptionsStateFamily('option/skipSilence')
   );
   const [startTime, setStartTime] = useRecoilState(
     numberOptionStateFamily('option/startTime')
@@ -210,6 +214,17 @@ export const OptionSetter = () => {
           <ColorRegular fontSize={22} style={{ verticalAlign: 'middle' }} />
         </Styled.IconToggle>
         Use a palette to downsample an input video stream.
+      </Styled.ItemWrapper>
+
+      <Styled.ItemSummery>Silence Skipping</Styled.ItemSummery>
+      <Styled.ItemWrapper>
+        <Styled.IconToggle
+          selected={skipSilence}
+          onClick={() => setSkipSilence((prev) => !prev)}
+        >
+          <SpeakerMuteRegular fontSize={22} style={{ verticalAlign: 'middle' }} />
+        </Styled.IconToggle>
+        Skip silent segments during playback
       </Styled.ItemWrapper>
 
       <Styled.ItemSummery>Silence Detection</Styled.ItemSummery>
