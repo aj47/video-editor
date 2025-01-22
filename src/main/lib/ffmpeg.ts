@@ -110,28 +110,17 @@ export const detectSilence = async (
           }
         });
 
-        // Sort and filter silence ranges
+        // Sort and process all detected silences without filtering
         silenceRanges.sort((a, b) => a[0] - b[0]);
-        const filteredRanges = silenceRanges.filter(([start, end], i) => {
-          // Skip short silence gaps between non-silence regions
-          if (i > 0 && i < silenceRanges.length - 1) {
-            const prevEnd = silenceRanges[i-1][1];
-            const nextStart = silenceRanges[i+1][0];
-            const silenceDuration = end - start;
-            if (silenceDuration < 0.5) { // min_silence_gap
-              log.debug(`[detectSilence] Removing short silence gap: ${start}s - ${end}s`);
-              return false;
-            }
-          }
-          return true;
-        });
+        const filteredRanges = silenceRanges;
+        log.debug(`[detectSilence] Raw silence ranges: ${JSON.stringify(filteredRanges)}`);
 
         // Create blocks array with proper buffer handling
         const blocks: Array<{ start: number; end: number }> = [];
         let currentPos = 0.0;
-        const nonSilenceBuffer = 0.3;
-        const minNonSilenceDuration = 0.5;
-        const maxGapToBridge = 2.0;
+        const nonSilenceBuffer = 0.1;  // Reduced from 0.3
+        const minNonSilenceDuration = 0.3;  // Reduced from 0.5
+        const maxGapToBridge = 1.0;  // Reduced from 2.0
 
         // Process all silence ranges
         for (const [silenceStart, silenceEnd] of filteredRanges) {
@@ -153,10 +142,14 @@ export const detectSilence = async (
             }
           }
 
-          // Add silence block (without buffer)
-          blocks.push({ start: silenceStart, end: silenceEnd });
-          log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
-          currentPos = silenceEnd;
+          // Add silence block with buffer check
+          if (silenceEnd - silenceStart >= 0.1) { // Minimum silence duration
+            blocks.push({ start: silenceStart, end: silenceEnd });
+            log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
+            currentPos = silenceEnd;
+          } else {
+            log.debug(`[detectSilence] Skipping short silence: ${silenceStart}s - ${silenceEnd}s`);
+          }
         }
 
         // Handle final non-silence segment
