@@ -75,3 +75,34 @@ export const Canvas = styled.canvas`
   width: 100%;
   height: 60px;
 `;
+
+export const TimelineScale = styled.div<{ $duration: number }>`
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: ${({ theme }) => theme.palette.background};
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: ${({ theme }) => theme.palette.border};
+    transform: translateY(-50%);
+  }
+
+  ${({ $duration }) => {
+    const step = Math.max($duration / 10, 5); // Show marks every 5-10% of duration
+    return css`
+      background-image: repeating-linear-gradient(
+        to right,
+        ${({ theme }) => theme.palette.border} 0 1px,
+        transparent 1px ${100 / step}%
+      );
+    `;
+  }}
+`;
