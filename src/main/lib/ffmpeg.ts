@@ -111,8 +111,9 @@ export const detectSilence = async (
 
             log.debug(`[detectSilence] Processing line: ${line}`);
             
-            const silenceStartMatch = line.match(/silence_start: (\d+\.?\d*)/);
-            const silenceEndMatch = line.match(/silence_end: (\d+\.?\d*)/);
+            // Match lines like: [silencedetect @ 0x6000013fc7e0] silence_start: 0.319167
+            const silenceStartMatch = line.match(/silence_start:\s*(\d+\.?\d*)/);
+            const silenceEndMatch = line.match(/silence_end:\s*(\d+\.?\d*)/);
 
             if (silenceStartMatch) {
               currentStart = parseFloat(silenceStartMatch[1]);
@@ -223,10 +224,13 @@ export const detectSilence = async (
         }
         log.debug('[detectSilence] Blocks after gap bridging:', JSON.stringify(mergedBlocks));
 
-        // If no blocks were created, create a single block for the entire duration
+        // Handle case where video starts with silence
         if (blocks.length === 0) {
+          log.debug('[detectSilence] No silence detected, creating full-length block');
           blocks.push({ start: 0, end: duration });
-          log.debug(`[detectSilence] Created single block for entire duration: 0s - ${duration}s`);
+        } else if (blocks[0].start > 0) {
+          log.debug('[detectSilence] Adding initial non-silence block');
+          blocks.unshift({ start: 0, end: blocks[0].start });
         }
 
         // Validate and fill gaps
