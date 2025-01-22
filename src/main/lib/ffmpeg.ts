@@ -126,52 +126,54 @@ export const detectSilence = async (
           return true;
         });
 
-        // Create initial block from start to first silence
+        // Create blocks array
         const blocks: Array<{ start: number; end: number }> = [];
+        let currentPos = 0;
+
+        // Add initial non-silence block if needed
         if (filteredRanges.length > 0 && filteredRanges[0][0] > 0) {
           const firstBlock = {
             start: 0,
             end: filteredRanges[0][0]
           };
           blocks.push(firstBlock);
+          currentPos = firstBlock.end;
           log.debug(`[detectSilence] Created initial non-silence block: ${firstBlock.start}s - ${firstBlock.end}s`);
         }
 
-        // Create alternating silence/non-silence blocks
+        // Process all silence ranges
         filteredRanges.forEach(([silenceStart, silenceEnd], index) => {
           // Add silence block
-          blocks.push({ start: silenceStart, end: silenceEnd });
-          log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
-
-          // Add non-silence block after silence
-          if (index < filteredRanges.length - 1) {
-            const nextSilenceStart = filteredRanges[index + 1][0];
-            if (silenceEnd < nextSilenceStart) {
-              const nonSilenceBlock = {
-                start: silenceEnd,
-                end: nextSilenceStart
-              };
-              blocks.push(nonSilenceBlock);
-              log.debug(`[detectSilence] Created non-silence block: ${nonSilenceBlock.start}s - ${nonSilenceBlock.end}s`);
-            }
+          if (silenceStart > currentPos) {
+            // Add non-silence block before silence
+            blocks.push({
+              start: currentPos,
+              end: silenceStart
+            });
+            log.debug(`[detectSilence] Created non-silence block: ${currentPos}s - ${silenceStart}s`);
           }
+          
+          // Add the silence block
+          blocks.push({
+            start: silenceStart,
+            end: silenceEnd
+          });
+          log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
+          
+          currentPos = silenceEnd;
         });
 
         // Add final non-silence block if needed
-        if (filteredRanges.length > 0) {
-          const lastSilenceEnd = filteredRanges[filteredRanges.length - 1][1];
-          if (lastSilenceEnd < duration) {
-            const finalBlock = {
-              start: lastSilenceEnd,
-              end: duration
-            };
-            blocks.push(finalBlock);
-            log.debug(`[detectSilence] Created final non-silence block: ${finalBlock.start}s - ${finalBlock.end}s`);
-          }
+        if (currentPos < duration) {
+          blocks.push({
+            start: currentPos,
+            end: duration
+          });
+          log.debug(`[detectSilence] Created final non-silence block: ${currentPos}s - ${duration}s`);
         }
 
-        // If no silence detected, create single block for entire duration
-        if (filteredRanges.length === 0) {
+        // If no blocks were created, create a single block for the entire duration
+        if (blocks.length === 0) {
           blocks.push({ start: 0, end: duration });
           log.debug(`[detectSilence] Created single block for entire duration: 0s - ${duration}s`);
         }
