@@ -2,6 +2,35 @@ import styled from 'styled-components';
 
 import { isDarwin } from '@shared/util';
 
+export const ModalContainer = styled.div`
+  background: ${({ theme }) => theme.palette.background};
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  max-width: 500px;
+`;
+
+export const ModalHeader = styled.h3`
+  margin: 0 0 16px;
+  font-size: 18px;
+`;
+
+export const ShortcutList = styled.dl`
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+`;
+
+export const ShortcutKey = styled.dt`
+  font-weight: bold;
+  color: ${({ theme }) => theme.palette.primary};
+`;
+
+export const ShortcutDesc = styled.dd`
+  margin: 0;
+`;
+
 export const Container = styled.div<{ isVisible: boolean }>`
   position: absolute;
   top: ${isDarwin ? '52px' : '82px'};
