@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import { useVideoController } from '@hooks/use-video-controller';
 import { inputFilePathState } from '@recoil/atoms/input-file';
 import { videoBlocksState, currentBlockIndexState } from '@recoil/atoms/timeline';
-import { formatTimeShort } from '@util/time';
+import { formatTimeShort } from '../../../util/time';
 
 import { Container, Canvas } from './Styled';
 
