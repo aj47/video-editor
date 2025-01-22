@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal } from '@components/Shared/Modal';
+import { ModalHeader, ShortcutList, ShortcutKey, ShortcutDesc } from '@components/Shared/Modal/Styled';
 import { HexColorPicker } from 'react-colorful';
 import { useClickOutside } from '../../../hooks/use-click-outside';
 import { useRecoilState, useRecoilValue } from 'recoil';
