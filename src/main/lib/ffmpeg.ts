@@ -65,108 +65,144 @@ export const inspectFile = async (
 
 export const detectSilence = async (
   filePath: string,
-  bufferBefore = 0.5,
-  bufferAfter = 0.5
+  silenceThreshold = -40,
+  minSilenceDuration = 0.1,
+  nonSilenceBuffer = 0.3
 ): Promise<Array<{ start: number; end: number }>> => {
-  log.info(`[detectSilence] Starting silence detection for: ${filePath}`);
+  log.info(`[detectSilence] Starting detection for: ${filePath}`);
   return new Promise((resolve, reject) => {
-    let output = ''
-    log.info('[detectSilence] Setting up ffmpeg command with silencedetect filter');
+    let output = '';
     const command = ffmpeg(filePath)
-      .audioFilters('silencedetect=noise=-40dB:d=0.1')
+      .audioFilters(`silencedetect=noise=${silenceThreshold}dB:d=${minSilenceDuration}`)
       .format('null')
-      .output('-')
+      .output('-');
 
     command.on('stderr', (errLine) => {
       log.debug(`[detectSilence] ffmpeg stderr: ${errLine}`);
-      output += errLine
-    })
+      output += errLine;
+    });
 
     command.on('end', async () => {
-      log.info('[detectSilence] ffmpeg command completed');
-      const blocks = [];
-      const startTimes = [];
-      const endTimes = [];
-      
-      // Get video duration using ffprobe
-      const getVideoDuration = async (filePath: string) => {
-        log.info(`[detectSilence] Getting video duration for: ${filePath}`);
-        try {
-          const data = await ffprobeAsync(filePath);
-          log.info(`[detectSilence] Video duration: ${data.format.duration}`);
-          return data.format.duration || 0;
-        } catch (err) {
-          log.error('[detectSilence] Error getting video duration:', err);
-          throw err;
-        }
-      };
-      
-      const videoDuration = await getVideoDuration(filePath);
-      log.info(`[detectSilence] Processing output for ${filePath}, duration: ${videoDuration}s`);
-      
-      const lines = output.split('\n');
-      log.debug(`[detectSilence] Processing ${lines.length} lines of ffmpeg output`);
-      
-      lines.forEach(line => {
-        const startMatch = line.match(/silence_start: (\d+\.\d+)/);
-        const endMatch = line.match(/silence_end: (\d+\.\d+)/);
+      try {
+        log.info('[detectSilence] ffmpeg command completed');
         
-        if (startMatch) {
-          const time = parseFloat(startMatch[1]);
-          log.debug(`[detectSilence] Found silence_start at ${time}s`);
-          startTimes.push(time);
-        }
-        if (endMatch) {
-          const time = parseFloat(endMatch[1]);
-          log.debug(`[detectSilence] Found silence_end at ${time}s`);
-          endTimes.push(time);
-        }
-      });
-      
-      log.info(`[detectSilence] Found ${startTimes.length} silence starts and ${endTimes.length} silence ends`);
+        // Get video duration
+        const data = await ffprobeAsync(filePath);
+        const duration = data.format.duration || 0;
+        log.info(`[detectSilence] Video duration: ${duration}s`);
 
-      // Process detected silence blocks into usable segments
-      let currentStart = 0
-      startTimes.forEach((start, i) => {
-        const end = endTimes[i] || start + 0.1
-        if (start > currentStart) {
-          // Apply buffer zones to detected blocks
-          const blockStart = Math.max(0, currentStart - bufferBefore)
-          const blockEnd = Math.min(videoDuration, start + bufferAfter)
-          blocks.push({ start: blockStart, end: blockEnd })
+        // Parse silence ranges
+        const silenceRanges: Array<[number, number]> = [];
+        let currentStart: number | null = null;
+
+        output.split('\n').forEach(line => {
+          if (line.includes('silence_start')) {
+            const time = parseFloat(line.split('silence_start: ')[1].split(' ')[0]);
+            currentStart = time;
+            log.debug(`[detectSilence] Found silence start at ${time}s`);
+          } else if (line.includes('silence_end') && currentStart !== null) {
+            const time = parseFloat(line.split('silence_end: ')[1].split(' ')[0]);
+            if (time > currentStart) {
+              silenceRanges.push([currentStart, time]);
+              log.debug(`[detectSilence] Found silence end at ${time}s`);
+            }
+            currentStart = null;
+          }
+        });
+
+        // Sort and filter silence ranges
+        silenceRanges.sort((a, b) => a[0] - b[0]);
+        const filteredRanges = silenceRanges.filter(([start, end], i) => {
+          // Skip short silence gaps between non-silence regions
+          if (i > 0 && i < silenceRanges.length - 1) {
+            const prevEnd = silenceRanges[i-1][1];
+            const nextStart = silenceRanges[i+1][0];
+            const silenceDuration = end - start;
+            if (silenceDuration < 0.5) { // min_silence_gap
+              log.debug(`[detectSilence] Removing short silence gap: ${start}s - ${end}s`);
+              return false;
+            }
+          }
+          return true;
+        });
+
+        // Create blocks with buffers
+        const blocks: Array<{ start: number; end: number }> = [];
+        let currentPos = 0.0;
+
+        filteredRanges.forEach(([silenceStart, silenceEnd]) => {
+          // Add non-silence block before silence if there's a gap
+          if (currentPos < silenceStart) {
+            const nonSilenceStart = Math.max(0, currentPos - nonSilenceBuffer);
+            const nonSilenceEnd = Math.min(duration, silenceStart + nonSilenceBuffer);
+            
+            if (nonSilenceEnd - nonSilenceStart >= 0.5) { // min_non_silence_duration
+              blocks.push({ start: nonSilenceStart, end: nonSilenceEnd });
+              log.debug(`[detectSilence] Created non-silence block: ${nonSilenceStart}s - ${nonSilenceEnd}s`);
+            }
+          }
+
+          // Add silence block
+          blocks.push({ start: silenceStart, end: silenceEnd });
+          log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
+          currentPos = silenceEnd;
+        });
+
+        // Add final non-silence block if needed
+        if (currentPos < duration) {
+          const finalStart = Math.max(0, currentPos - nonSilenceBuffer);
+          const finalEnd = duration;
+          
+          if (finalEnd - finalStart >= 0.5) { // min_non_silence_duration
+            blocks.push({ start: finalStart, end: finalEnd });
+            log.debug(`[detectSilence] Created final non-silence block: ${finalStart}s - ${finalEnd}s`);
+          }
         }
-        currentStart = end
-      })
-      
-      // Add final segment if needed
-      if (currentStart < videoDuration) {
-        blocks.push({ 
-          start: Math.max(0, currentStart - bufferBefore),
-          end: videoDuration
-        })
+
+        // Validate and fill gaps
+        const validatedBlocks: Array<{ start: number; end: number }> = [];
+        blocks.forEach((block, i) => {
+          if (i > 0) {
+            const prevBlock = validatedBlocks[validatedBlocks.length - 1];
+            if (block.start < prevBlock.end) {
+              // Adjust overlapping blocks
+              block.start = prevBlock.end;
+            } else if (block.start - prevBlock.end > 2.0) { // max_gap_to_bridge
+              // Add silence block to fill large gaps
+              validatedBlocks.push({ 
+                start: prevBlock.end, 
+                end: block.start 
+              });
+            }
+          }
+          validatedBlocks.push(block);
+        });
+
+        // Format result with labels and colors
+        const resultBlocks = validatedBlocks.map((b, i) => ({
+          start: b.start,
+          end: b.end,
+          active: i === 0,
+          label: `Segment ${i + 1}`,
+          color: '#4CAF50'
+        }));
+
+        log.info(`[detectSilence] Generated ${resultBlocks.length} video blocks`);
+        resolve(resultBlocks);
+      } catch (err) {
+        log.error('[detectSilence] Error processing results:', err);
+        reject(err);
       }
-      
-      const resultBlocks = blocks.map((b, i) => ({
-        start: b.start,
-        end: b.end,
-        active: i === 0, // First block active by default
-        label: `Segment ${i + 1}`,
-        color: '#4CAF50'
-      }));
-      
-      log.info(`[detectSilence] Generated ${resultBlocks.length} video blocks`);
-      log.debug('[detectSilence] Result blocks:', resultBlocks);
-      
-      resolve(resultBlocks);
-    })
+    });
 
     command.on('error', err => {
       log.error('[detectSilence] ffmpeg command error:', err);
       reject(err);
-    })
-    command.run()
-  })
-}
+    });
+
+    command.run();
+  });
+};
 
 export const convert = (filePath: string, option: ConvertOption, segments: Array<{ start: number; end: number }>) => {
   const command = ffmpeg()
