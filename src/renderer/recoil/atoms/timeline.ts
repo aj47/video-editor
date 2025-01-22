@@ -22,7 +22,7 @@ export const videoBlocksState = atom<VideoBlockType[]>({
   key: 'videoBlocksState',
   default: [{
     start: 0,
-    end: 5,
+    end: 1, // Use relative 1 second instead of absolute 5
     active: true,
     label: 'Debug Block',
     color: '#4CAF50'

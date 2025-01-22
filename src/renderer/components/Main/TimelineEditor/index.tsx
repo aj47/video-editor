@@ -170,13 +170,18 @@ export const TimelineEditor = () => {
         </div>
       )}
       <TimelineTrack>
-        <TimelineScale $duration={duration} />
-        {videoBlocks.map((block, index) => (
-          <Block
-            key={index}
-            $width={((block.end - block.start) / duration) * 100}
-            $left={(block.start / duration) * 100}
-            $active={block.active}
+        <TimelineScale $duration={duration > 0 ? duration : 1} />
+        {videoBlocks.map((block, index) => {
+          const validDuration = duration > 0 ? duration : 1; // Prevent division by zero
+          const left = Math.min(99.9, (block.start / validDuration) * 100);
+          const width = Math.min(100 - left, ((block.end - block.start) / validDuration) * 100);
+
+          return (
+            <Block
+              key={index}
+              $width={width}
+              $left={left}
+              $active={block.active}
             onClick={(e) => {
               e.stopPropagation();
               handleBlockClick(index);
