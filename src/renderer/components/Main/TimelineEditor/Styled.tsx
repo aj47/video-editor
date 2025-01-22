@@ -1,14 +1,21 @@
 import styled, { css } from 'styled-components';
 
 export const Container = styled.div`
+  position: relative;
   padding: 16px 0;
+  margin-top: 40px;
   border-radius: 8px;
+  z-index: 50;
+  background: ${({ theme }) => theme.palette.background};
+  border: 1px solid ${({ theme }) => theme.palette.border};
 `;
 
 export const TimelineTrack = styled.div`
   position: relative;
-  height: 48px;
+  height: 32px;
   border-radius: 4px;
+  background: ${({ theme }) => theme.palette.backgroundDark};
+  border: 1px solid ${({ theme }) => theme.palette.border};
 `;
 
 export const LabelText = styled.div`
@@ -28,8 +35,16 @@ export const ResizeHandle = styled.div<{ $side: 'left' | 'right' }>`
   width: 8px;
   height: 100%;
   cursor: col-resize;
-  background: rgba(255, 255, 255, 0.3);
+  background: ${({ theme }) => theme.palette.text};
+  opacity: 0.6;
   z-index: 2;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+    width: 10px;
+    ${({ $side }) => $side}: -5px;
+  }
 `;
 
 export const Block = styled.div<{
@@ -45,14 +60,14 @@ export const Block = styled.div<{
   transition: all 0.2s;
   border-radius: 4px;
   overflow: hidden;
-  opacity: ${({ $active }) => ($active ? 1 : 0.6)};
-  transform: scale(${({ $active }) => ($active ? 1.02 : 1)});
-  box-shadow: ${({ $active }) =>
-    $active ? `0 2px 8px rgba(0,0,0,0.2)` : 'none'};
+  background: ${({ $active, theme }) => 
+    $active ? theme.palette.success : theme.palette.error};
+  border: 1px solid ${({ theme }) => theme.palette.border};
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 
   &:hover {
-    opacity: 1;
-    transform: scale(1.02);
+    filter: brightness(1.1);
+    z-index: 1;
   }
 `;
 
