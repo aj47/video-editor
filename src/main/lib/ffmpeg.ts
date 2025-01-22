@@ -237,10 +237,6 @@ export const detectSilence = async (
         const validatedBlocks: Array<{ start: number; end: number }> = [];
         log.debug('[detectSilence] Starting validation of merged blocks');
         
-        // Validate and clean up blocks
-        const validatedBlocks: Array<{ start: number; end: number }> = [];
-        log.debug('[detectSilence] Starting validation of merged blocks');
-        
         for (const block of mergedBlocks) {
           // Skip invalid/empty blocks
           if (block.start >= block.end) {
