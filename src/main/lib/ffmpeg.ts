@@ -126,50 +126,73 @@ export const detectSilence = async (
           return true;
         });
 
-        // Create blocks array
+        // Create blocks array with proper buffer handling
         const blocks: Array<{ start: number; end: number }> = [];
-        let currentPos = 0;
-
-        // Add initial non-silence block if needed
-        if (filteredRanges.length > 0 && filteredRanges[0][0] > 0) {
-          const firstBlock = {
-            start: 0,
-            end: filteredRanges[0][0]
-          };
-          blocks.push(firstBlock);
-          currentPos = firstBlock.end;
-          log.debug(`[detectSilence] Created initial non-silence block: ${firstBlock.start}s - ${firstBlock.end}s`);
-        }
+        let currentPos = 0.0;
+        const nonSilenceBuffer = 0.3;
+        const minNonSilenceDuration = 0.5;
+        const maxGapToBridge = 2.0;
 
         // Process all silence ranges
-        filteredRanges.forEach(([silenceStart, silenceEnd], index) => {
-          // Add silence block
-          if (silenceStart > currentPos) {
-            // Add non-silence block before silence
-            blocks.push({
-              start: currentPos,
-              end: silenceStart
-            });
-            log.debug(`[detectSilence] Created non-silence block: ${currentPos}s - ${silenceStart}s`);
+        for (const [silenceStart, silenceEnd] of filteredRanges) {
+          // Add non-silence block before silence if there's a gap
+          if (currentPos < silenceStart) {
+            const blockStart = currentPos;
+            const blockEnd = silenceStart;
+            
+            // Apply buffer and check minimum duration
+            const bufferedStart = Math.max(0, blockStart - nonSilenceBuffer);
+            const bufferedEnd = Math.min(duration, blockEnd + nonSilenceBuffer);
+            
+            // Only create block if duration meets minimum
+            if (bufferedEnd - bufferedStart >= minNonSilenceDuration) {
+              blocks.push({ start: bufferedStart, end: bufferedEnd });
+              log.debug(`[detectSilence] Created buffered non-silence block: ${bufferedStart}s - ${bufferedEnd}s`);
+            } else {
+              log.debug(`[detectSilence] Skipping short non-silence block: ${blockStart}s - ${blockEnd}s`);
+            }
           }
-          
-          // Add the silence block
-          blocks.push({
-            start: silenceStart,
-            end: silenceEnd
-          });
-          log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
-          
-          currentPos = silenceEnd;
-        });
 
-        // Add final non-silence block if needed
+          // Add silence block (without buffer)
+          blocks.push({ start: silenceStart, end: silenceEnd });
+          log.debug(`[detectSilence] Created silence block: ${silenceStart}s - ${silenceEnd}s`);
+          currentPos = silenceEnd;
+        }
+
+        // Handle final non-silence segment
         if (currentPos < duration) {
-          blocks.push({
-            start: currentPos,
-            end: duration
-          });
-          log.debug(`[detectSilence] Created final non-silence block: ${currentPos}s - ${duration}s`);
+          const finalStart = currentPos;
+          const bufferedEnd = Math.min(duration, finalStart + nonSilenceBuffer);
+          
+          if (bufferedEnd - finalStart >= minNonSilenceDuration) {
+            blocks.push({ start: finalStart, end: duration });
+            log.debug(`[detectSilence] Created final non-silence block: ${finalStart}s - ${duration}s`);
+          } else {
+            log.debug(`[detectSilence] Extending previous block to cover final segment`);
+            if (blocks.length > 0) {
+              blocks[blocks.length - 1].end = duration;
+            }
+          }
+        }
+
+        // Fill small gaps between blocks
+        const mergedBlocks: Array<{ start: number; end: number }> = [];
+        for (const block of blocks) {
+          if (mergedBlocks.length === 0) {
+            mergedBlocks.push(block);
+            continue;
+          }
+
+          const lastBlock = mergedBlocks[mergedBlocks.length - 1];
+          const gap = block.start - lastBlock.end;
+
+          if (gap > 0 && gap <= maxGapToBridge) {
+            // Bridge small gaps by extending previous block
+            lastBlock.end = block.start;
+            log.debug(`[detectSilence] Bridged gap of ${gap}s between ${lastBlock.start}s-${lastBlock.end}s and ${block.start}s-${block.end}s`);
+          }
+
+          mergedBlocks.push(block);
         }
 
         // If no blocks were created, create a single block for the entire duration
