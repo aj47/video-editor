@@ -1,7 +1,6 @@
 import { ChangeEvent, useCallback, useRef } from 'react';
-
 import { useVideoController } from '@hooks/index';
-
+import { TimelineEditor } from '@components/Main/TimelineEditor';
 import * as Styled from './Styled';
 
 export const SeekBar = () => {
@@ -27,15 +26,18 @@ export const SeekBar = () => {
   );
 
   return (
-    <Styled.Input
-      className="allow-event"
-      type="range"
-      step="any"
-      max={duration}
-      value={currentTime}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onChange={onChange}
-    />
+    <>
+      <Styled.Input
+        className="allow-event"
+        type="range"
+        step="any"
+        max={duration}
+        value={currentTime}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onChange={onChange}
+      />
+      <TimelineEditor />
+    </>
   );
 };

@@ -6,7 +6,6 @@ import {
 } from '@fluentui/react-icons';
 
 import { useVideoController } from '@hooks/index';
-import { TimelineEditor } from '@components/Main/TimelineEditor';
 
 import { SeekBar } from './SeekBar';
 import * as Styled from './Styled';
@@ -42,7 +41,6 @@ export const VideoController = () => {
       <Styled.SeekBarWrapper>
         <SeekBar />
       </Styled.SeekBarWrapper>
-      <TimelineEditor />
     </Styled.Container>
   );
 };

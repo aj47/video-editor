@@ -29,4 +29,7 @@ export const Input = styled.input`
 export const SeekBarWrapper = styled.div`
   width: 100%;
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 `;
