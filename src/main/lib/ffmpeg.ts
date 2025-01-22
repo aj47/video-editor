@@ -73,19 +73,21 @@ export const detectSilence = async (
   return new Promise((resolve, reject) => {
     let output = '';
     const command = ffmpeg(filePath)
-      .audioFilters(`silencedetect=noise=${silenceThreshold}dB:d=${minSilenceDuration}`)
+      .audioFilters(
+        `silencedetect=noise=${silenceThreshold}dB:d=${minSilenceDuration}`
+      )
       .format('null')
       .output('-');
 
     command.on('stderr', (errLine) => {
       log.debug(`[detectSilence] ffmpeg stderr: ${errLine}`);
-      output += errLine;
+      output += `${errLine}\n`;
     });
 
     command.on('end', async () => {
       try {
         log.info('[detectSilence] ffmpeg command completed');
-        
+
         // Get video duration
         const data = await ffprobeAsync(filePath);
         const duration = data.format.duration || 0;
@@ -96,30 +98,38 @@ export const detectSilence = async (
         let currentStart: number | null = null;
 
         // Buffer for accumulating multi-line output
-        let buffer = '';
-        
+        const buffer = '';
+
         // Process each line directly
-        output.split('\n').forEach(rawLine => {
+        output.split('\n').forEach((rawLine) => {
           const line = rawLine.trim();
           if (!line) return;
 
           log.debug(`[detectSilence] Processing line: ${line}`);
-          
+
           // Improved regex patterns to capture decimal values more accurately
           const silenceStartMatch = line.match(/silence_start:\s*([\d.]+)/);
           const silenceEndMatch = line.match(/silence_end:\s*([\d.]+)/);
 
           if (silenceStartMatch) {
             currentStart = parseFloat(silenceStartMatch[1]);
-            log.debug(`[detectSilence] Found silence_start at ${currentStart}s`);
+            log.debug(
+              `[detectSilence] Found silence_start at ${currentStart}s`
+            );
           } else if (silenceEndMatch && currentStart !== null) {
             const endTime = parseFloat(silenceEndMatch[1]);
             if (endTime > currentStart) {
               silenceRanges.push([currentStart, endTime]);
-              log.debug(`[detectSilence] Found silence_end at ${endTime}s (duration: ${endTime - currentStart}s)`);
-              currentStart = null;  // Reset only after successful pair
+              log.debug(
+                `[detectSilence] Found silence_end at ${endTime}s (duration: ${
+                  endTime - currentStart
+                }s)`
+              );
+              currentStart = null; // Reset only after successful pair
             } else {
-              log.debug(`[detectSilence] Discarding invalid silence range ${currentStart}-${endTime}s`);
+              log.debug(
+                `[detectSilence] Discarding invalid silence range ${currentStart}-${endTime}s`
+              );
               currentStart = null;
             }
           }
@@ -128,15 +138,23 @@ export const detectSilence = async (
         // Sort and process all detected silences
         silenceRanges.sort((a, b) => a[0] - b[0]);
         const filteredRanges = silenceRanges;
-        log.info(`[detectSilence] Found ${silenceRanges.length} raw silence ranges`);
-        log.debug(`[detectSilence] Raw silence ranges:\n${JSON.stringify(filteredRanges, null, 2)}`);
+        log.info(
+          `[detectSilence] Found ${silenceRanges.length} raw silence ranges`
+        );
+        log.debug(
+          `[detectSilence] Raw silence ranges:\n${JSON.stringify(
+            filteredRanges,
+            null,
+            2
+          )}`
+        );
 
         // Create blocks array with proper buffer handling
         const blocks: Array<{ start: number; end: number }> = [];
         // Use parameters instead of hardcoded values
         const minNonSilenceDuration = 0.3;
         const maxGapToBridge = 1.0;
-        
+
         // Handle initial segment before first silence
         if (filteredRanges.length > 0 && filteredRanges[0][0] > 0) {
           const initialEnd = filteredRanges[0][0] - nonSilenceBuffer;
@@ -144,8 +162,10 @@ export const detectSilence = async (
             blocks.push({ start: 0, end: initialEnd });
           }
         }
-        
-        log.debug(`[detectSilence] Using buffer settings - nonSilenceBuffer: ${nonSilenceBuffer}s, minNonSilenceDuration: ${minNonSilenceDuration}s, maxGapToBridge: ${maxGapToBridge}s`);
+
+        log.debug(
+          `[detectSilence] Using buffer settings - nonSilenceBuffer: ${nonSilenceBuffer}s, minNonSilenceDuration: ${minNonSilenceDuration}s, maxGapToBridge: ${maxGapToBridge}s`
+        );
 
         // Process all silence ranges to find non-silence segments
         let lastEnd = 0;
@@ -153,20 +173,22 @@ export const detectSilence = async (
           // Calculate non-silence segment between silences
           const segmentStart = Math.max(lastEnd, 0);
           const segmentEnd = silenceStart;
-          
+
           // Apply buffer to create usable blocks
           const bufferedStart = segmentStart;
           const bufferedEnd = segmentEnd + nonSilenceBuffer;
-          
+
           // Only create block if duration meets minimum
           if (bufferedEnd - bufferedStart >= minNonSilenceDuration) {
-            blocks.push({ 
+            blocks.push({
               start: bufferedStart,
-              end: bufferedEnd
+              end: bufferedEnd,
             });
-            log.debug(`[detectSilence] Created non-silence block: ${bufferedStart}s - ${bufferedEnd}s`);
+            log.debug(
+              `[detectSilence] Created non-silence block: ${bufferedStart}s - ${bufferedEnd}s`
+            );
           }
-          
+
           lastEnd = silenceEnd;
         }
 
@@ -174,14 +196,16 @@ export const detectSilence = async (
         if (lastEnd < duration) {
           const bufferedStart = Math.max(0, lastEnd - nonSilenceBuffer);
           const bufferedEnd = duration;
-          
+
           if (bufferedEnd - bufferedStart >= minNonSilenceDuration) {
             blocks.push({
               start: bufferedStart,
               end: bufferedEnd,
-              isSilence: false
+              isSilence: false,
             });
-            log.debug(`[detectSilence] Created final non-silence block: ${bufferedStart}s - ${bufferedEnd}s`);
+            log.debug(
+              `[detectSilence] Created final non-silence block: ${bufferedStart}s - ${bufferedEnd}s`
+            );
           }
         }
 
@@ -189,43 +213,54 @@ export const detectSilence = async (
         if (lastEnd < duration) {
           const finalStart = lastEnd;
           const bufferedEnd = duration;
-          
+
           if (bufferedEnd - finalStart >= minNonSilenceDuration) {
-            blocks.push({ 
-              start: finalStart, 
-              end: bufferedEnd 
+            blocks.push({
+              start: finalStart,
+              end: bufferedEnd,
             });
-            log.debug(`[detectSilence] Created final non-silence block: ${finalStart}s - ${bufferedEnd}s`);
+            log.debug(
+              `[detectSilence] Created final non-silence block: ${finalStart}s - ${bufferedEnd}s`
+            );
           }
         }
 
         // Merge adjacent or overlapping blocks
         const mergedBlocks: Array<{ start: number; end: number }> = [];
-        
+
         for (const block of blocks) {
           if (mergedBlocks.length === 0) {
-            mergedBlocks.push({...block});
+            mergedBlocks.push({ ...block });
             continue;
           }
 
           const lastBlock = mergedBlocks[mergedBlocks.length - 1];
-          
+
           // Check if we should merge with previous block
           if (block.start <= lastBlock.end + maxGapToBridge) {
             // Extend the previous block
             lastBlock.end = Math.max(lastBlock.end, block.end);
-            log.debug(`[detectSilence] Merged block with previous, new range: ${lastBlock.start}s-${lastBlock.end}s`);
+            log.debug(
+              `[detectSilence] Merged block with previous, new range: ${lastBlock.start}s-${lastBlock.end}s`
+            );
           } else {
             // Add as new block
-            mergedBlocks.push({...block});
-            log.debug(`[detectSilence] Added new block: ${block.start}s-${block.end}s`);
+            mergedBlocks.push({ ...block });
+            log.debug(
+              `[detectSilence] Added new block: ${block.start}s-${block.end}s`
+            );
           }
         }
-        log.debug('[detectSilence] Blocks after gap bridging:', JSON.stringify(mergedBlocks));
+        log.debug(
+          '[detectSilence] Blocks after gap bridging:',
+          JSON.stringify(mergedBlocks)
+        );
 
         // Handle case where video starts with silence
         if (blocks.length === 0) {
-          log.debug('[detectSilence] No silence detected, creating full-length block');
+          log.debug(
+            '[detectSilence] No silence detected, creating full-length block'
+          );
           blocks.push({ start: 0, end: duration });
         } else if (blocks[0].start > 0) {
           log.debug('[detectSilence] Adding initial non-silence block');
@@ -235,11 +270,13 @@ export const detectSilence = async (
         // Validate and fill gaps
         const validatedBlocks: Array<{ start: number; end: number }> = [];
         log.debug('[detectSilence] Starting validation of merged blocks');
-        
+
         for (const block of mergedBlocks) {
           // Skip invalid/empty blocks
           if (block.start >= block.end) {
-            log.debug(`[detectSilence] Skipping invalid block: ${block.start}s-${block.end}s`);
+            log.debug(
+              `[detectSilence] Skipping invalid block: ${block.start}s-${block.end}s`
+            );
             continue;
           }
 
@@ -249,16 +286,20 @@ export const detectSilence = async (
           }
 
           const prevBlock = validatedBlocks[validatedBlocks.length - 1];
-          
+
           // Handle overlaps and gaps
           if (block.start <= prevBlock.end) {
             // Merge overlapping blocks
             prevBlock.end = Math.max(prevBlock.end, block.end);
-            log.debug(`[detectSilence] Merged overlapping block into: ${prevBlock.start}s-${prevBlock.end}s`);
+            log.debug(
+              `[detectSilence] Merged overlapping block into: ${prevBlock.start}s-${prevBlock.end}s`
+            );
           } else if (block.start - prevBlock.end <= maxGapToBridge) {
             // Bridge small gaps
             prevBlock.end = block.end;
-            log.debug(`[detectSilence] Bridged gap to: ${prevBlock.start}s-${prevBlock.end}s`);
+            log.debug(
+              `[detectSilence] Bridged gap to: ${prevBlock.start}s-${prevBlock.end}s`
+            );
           } else {
             validatedBlocks.push(block);
           }
@@ -268,10 +309,15 @@ export const detectSilence = async (
         const finalBlock = validatedBlocks[validatedBlocks.length - 1];
         if (finalBlock.end < duration) {
           finalBlock.end = duration;
-          log.debug(`[detectSilence] Extended final block to cover duration: ${finalBlock.start}s-${finalBlock.end}s`);
+          log.debug(
+            `[detectSilence] Extended final block to cover duration: ${finalBlock.start}s-${finalBlock.end}s`
+          );
         }
-        
-        log.debug('[detectSilence] Final validated blocks:', JSON.stringify(validatedBlocks));
+
+        log.debug(
+          '[detectSilence] Final validated blocks:',
+          JSON.stringify(validatedBlocks)
+        );
 
         // Format result with labels and colors
         const resultBlocks = validatedBlocks.map((b, i) => ({
@@ -279,10 +325,12 @@ export const detectSilence = async (
           end: b.end,
           active: i === 0,
           label: `Segment ${i + 1}`,
-          color: '#4CAF50'
+          color: '#4CAF50',
         }));
 
-        log.info(`[detectSilence] Generated ${resultBlocks.length} video blocks`);
+        log.info(
+          `[detectSilence] Generated ${resultBlocks.length} video blocks`
+        );
         resolve(resultBlocks);
       } catch (err) {
         log.error('[detectSilence] Error processing results:', err);
@@ -290,7 +338,7 @@ export const detectSilence = async (
       }
     });
 
-    command.on('error', err => {
+    command.on('error', (err) => {
       log.error('[detectSilence] ffmpeg command error:', err);
       reject(err);
     });
@@ -299,15 +347,23 @@ export const detectSilence = async (
   });
 };
 
-export const convert = (filePath: string, option: ConvertOption, segments: Array<{ start: number; end: number }>) => {
+export const convert = (
+  filePath: string,
+  option: ConvertOption,
+  segments: Array<{ start: number; end: number }>
+) => {
   const command = ffmpeg()
     .input(filePath)
-    .inputOptions(segments.flatMap(({ start, end }) => [
-      '-ss', `${Math.max(0, start - 0.1)}`,
-      '-to', `${end + 0.1}`,
-      '-c copy',
-      '-avoid_negative_ts make_zero'
-    ]))
+    .inputOptions(
+      segments.flatMap(({ start, end }) => [
+        '-ss',
+        `${Math.max(0, start - 0.1)}`,
+        '-to',
+        `${end + 0.1}`,
+        '-c copy',
+        '-avoid_negative_ts make_zero',
+      ])
+    )
     .format('gif')
     .withNoAudio()
     .output(option.outputPath);
