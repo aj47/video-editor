@@ -98,34 +98,28 @@ export const detectSilence = async (
         // Buffer for accumulating multi-line output
         let buffer = '';
         
-        // Process each chunk while handling multi-line outputs
-        output.split('\n').forEach(chunk => {
-          buffer += chunk;
+        // Process each line directly
+        output.split('\n').forEach(rawLine => {
+          const line = rawLine.trim();
+          if (!line) return;
+
+          log.debug(`[detectSilence] Processing line: ${line}`);
           
-          while (buffer.length > 0) {
-            const lineEnd = buffer.indexOf('\n');
-            if (lineEnd === -1) break;
-            
-            const line = buffer.slice(0, lineEnd).trim();
-            buffer = buffer.slice(lineEnd + 1);
+          // Improved regex patterns to capture decimal values more accurately
+          const silenceStartMatch = line.match(/silence_start:\s*([\d.]+)/);
+          const silenceEndMatch = line.match(/silence_end:\s*([\d.]+)/);
 
-            log.debug(`[detectSilence] Processing line: ${line}`);
-            
-            // Match lines like: [silencedetect @ 0x6000013fc7e0] silence_start: 0.319167
-            const silenceStartMatch = line.match(/silence_start:\s*(\d+\.?\d*)/);
-            const silenceEndMatch = line.match(/silence_end:\s*(\d+\.?\d*)/);
-
-            if (silenceStartMatch) {
-              currentStart = parseFloat(silenceStartMatch[1]);
-              log.debug(`[detectSilence] Found silence_start at ${currentStart}s`);
-            } else if (silenceEndMatch && currentStart !== null) {
-              const endTime = parseFloat(silenceEndMatch[1]);
-              if (endTime > currentStart) {
-                silenceRanges.push([currentStart, endTime]);
-                log.debug(`[detectSilence] Found silence_end at ${endTime}s (duration: ${endTime - currentStart}s)`);
-              } else {
-                log.debug(`[detectSilence] Discarding invalid silence range ${currentStart}-${endTime}s`);
-              }
+          if (silenceStartMatch) {
+            currentStart = parseFloat(silenceStartMatch[1]);
+            log.debug(`[detectSilence] Found silence_start at ${currentStart}s`);
+          } else if (silenceEndMatch && currentStart !== null) {
+            const endTime = parseFloat(silenceEndMatch[1]);
+            if (endTime > currentStart) {
+              silenceRanges.push([currentStart, endTime]);
+              log.debug(`[detectSilence] Found silence_end at ${endTime}s (duration: ${endTime - currentStart}s)`);
+              currentStart = null;  // Reset only after successful pair
+            } else {
+              log.debug(`[detectSilence] Discarding invalid silence range ${currentStart}-${endTime}s`);
               currentStart = null;
             }
           }
