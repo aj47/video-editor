@@ -10,6 +10,7 @@ import {
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useSetRecoilState, useRecoilValue } from 'recoil';
 import { inputFilePathState } from '@recoil/atoms/input-file';
+import { videoBlocksState } from '@recoil/atoms/timeline';
 
 import { timeToSeconds, secToTimeString } from '@renderer/util';
 
@@ -51,6 +52,7 @@ export const OptionSetter = () => {
 
   const setCropOption = useSetRecoilState(cropOptionState);
   const inputFilePath = useRecoilValue(inputFilePathState);
+  const setVideoBlocks = useSetRecoilState(videoBlocksState);
 
   const [inputStartTime, setInputStartTime] = useState('');
   const [inputEndTime, setInputEndTime] = useState('');
