@@ -12,11 +12,10 @@ export const Container = styled.div`
 
 export const TimelineTrack = styled.div`
   position: relative;
-  height: 48px;
-  margin: 0 40px;
+  height: 32px;
   border-radius: 4px;
   background: ${({ theme }) => theme.palette.backgroundDark};
-  border-bottom: 2px solid ${({ theme }) => theme.palette.border};
+  border: 1px solid ${({ theme }) => theme.palette.border};
 `;
 
 export const LabelText = styled.div`
@@ -31,21 +30,20 @@ export const LabelText = styled.div`
 
 export const ResizeHandle = styled.div<{ $side: 'left' | 'right' }>`
   position: absolute;
-  ${({ $side }) => $side}: -6px;
-  top: 50%;
-  width: 12px;
-  height: 24px;
-  transform: translateY(-50%);
+  ${({ $side }) => $side}: -4px;
+  top: 0;
+  width: 8px;
+  height: 100%;
   cursor: col-resize;
-  background: ${({ theme }) => theme.palette.background};
-  border: 2px solid ${({ theme }) => theme.palette.border};
-  border-radius: 4px;
-  transition: all 0.2s;
+  background: ${({ theme }) => theme.palette.text};
+  opacity: 0.6;
+  z-index: 2;
+  transition: opacity 0.2s;
 
   &:hover {
-    background: ${({ theme }) => theme.palette.primary};
-    ${({ $side }) => $side}: -8px;
-    width: 16px;
+    opacity: 1;
+    width: 10px;
+    ${({ $side }) => $side}: -5px;
   }
 `;
 
@@ -55,68 +53,25 @@ export const Block = styled.div<{
   $active: boolean;
 }>`
   position: absolute;
-  height: 24px;
-  top: 12px;
+  height: 100%;
   width: ${({ $width }) => $width}%;
   left: ${({ $left }) => $left}%;
-  border-radius: 4px;
-  background: ${({ $active, theme }) => 
-    $active ? theme.palette.success : theme.palette.error};
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
   cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+  overflow: hidden;
+  background: ${({ $active, theme }) =>
+    $active ? theme.palette.success : theme.palette.error};
+  border: 1px solid ${({ theme }) => theme.palette.border};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    transform: scaleY(1.1);
-    z-index: 2;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: currentColor;
-    opacity: 0.3;
+    filter: brightness(1.1);
+    z-index: 1;
   }
 `;
 
-export const TimelineScale = styled.div<{ $duration: number }>`
-  position: absolute;
-  top: -24px;
-  left: 0;
-  right: 0;
-  height: 20px;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 8px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    height: 4px;
-    background: ${({ theme }) => theme.palette.border};
-  }
-
-  ${({ $duration }) => {
-    const marks = [];
-    for (let i = 0; i <= $duration; i += 5) {
-      marks.push(`
-        &::after {
-          content: '${i}s';
-          position: absolute;
-          left: ${(i / $duration) * 100}%;
-          transform: translateX(-50%);
-          font-size: 12px;
-          color: ${({ theme }) => theme.palette.textSecondary};
-        }
-      `);
-    }
-    return css`${marks.join('')}`;
-  }}
+export const Canvas = styled.canvas`
+  width: 100%;
+  height: 60px;
 `;
