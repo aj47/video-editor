@@ -12,10 +12,11 @@ export const Container = styled.div`
 
 export const TimelineTrack = styled.div`
   position: relative;
-  height: 32px;
+  height: 48px;
+  margin: 0 40px;
   border-radius: 4px;
   background: ${({ theme }) => theme.palette.backgroundDark};
-  border: 1px solid ${({ theme }) => theme.palette.border};
+  border-bottom: 2px solid ${({ theme }) => theme.palette.border};
 `;
 
 export const LabelText = styled.div`
@@ -30,20 +31,21 @@ export const LabelText = styled.div`
 
 export const ResizeHandle = styled.div<{ $side: 'left' | 'right' }>`
   position: absolute;
-  ${({ $side }) => $side}: -4px;
-  top: 0;
-  width: 8px;
-  height: 100%;
+  ${({ $side }) => $side}: -6px;
+  top: 50%;
+  width: 12px;
+  height: 24px;
+  transform: translateY(-50%);
   cursor: col-resize;
-  background: ${({ theme }) => theme.palette.text};
-  opacity: 0.6;
-  z-index: 2;
-  transition: opacity 0.2s;
+  background: ${({ theme }) => theme.palette.background};
+  border: 2px solid ${({ theme }) => theme.palette.border};
+  border-radius: 4px;
+  transition: all 0.2s;
 
   &:hover {
-    opacity: 1;
-    width: 10px;
-    ${({ $side }) => $side}: -5px;
+    background: ${({ theme }) => theme.palette.primary};
+    ${({ $side }) => $side}: -8px;
+    width: 16px;
   }
 `;
 
@@ -52,27 +54,69 @@ export const Block = styled.div<{
   $left: number;
   $active: boolean;
 }>`
-  zindex: 999;
   position: absolute;
-  height: 100%;
+  height: 24px;
+  top: 12px;
   width: ${({ $width }) => $width}%;
   left: ${({ $left }) => $left}%;
-  cursor: pointer;
-  transition: all 0.2s;
   border-radius: 4px;
-  overflow: hidden;
-  background: ${({ $active, theme }) =>
+  background: ${({ $active, theme }) => 
     $active ? theme.palette.success : theme.palette.error};
-  border: 1px solid ${({ theme }) => theme.palette.border};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
 
   &:hover {
-    filter: brightness(1.1);
-    z-index: 1;
+    transform: scaleY(1.1);
+    z-index: 2;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.3;
   }
 `;
 
-export const Canvas = styled.canvas`
-  width: 100%;
-  height: 60px;
+export const TimelineScale = styled.div<{ $duration: number }>`
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 4px;
+    background: ${({ theme }) => theme.palette.border};
+  }
+
+  ${({ $duration }) => {
+    const marks = [];
+    for (let i = 0; i <= $duration; i += 5) {
+      marks.push(`
+        &::after {
+          content: '${i}s';
+          position: absolute;
+          left: ${(i / $duration) * 100}%;
+          transform: translateX(-50%);
+          font-size: 12px;
+          color: ${({ theme }) => theme.palette.textSecondary};
+        }
+      `);
+    }
+    return css`${marks.join('')}`;
+  }}
 `;

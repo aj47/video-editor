@@ -15,11 +15,10 @@ import {
   Block,
   ResizeHandle,
   LabelText,
-  Canvas
+  TimelineScale
 } from './Styled';
 
 export const TimelineEditor = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { duration, seekTo } = useVideoController();
   const [isDragging, setIsDragging] = useState(false);
@@ -81,14 +80,15 @@ export const TimelineEditor = () => {
   }, [handleResizeMove, handleResizeEnd]);
   const { width: containerWidth } = useResizeObserver(containerRef);
 
-  const handleBlockClick = useCallback((index: number) => {
+  const handleBlockClick = useCallback((index: number, e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickPosition = (e.clientX - rect.left) / rect.width;
+    const block = videoBlocks[index];
+    const clickedTime = block.start + (block.end - block.start) * clickPosition;
+    
+    seekTo(clickedTime);
     setCurrentBlockIndex(index);
-    setVideoBlocks(blocks => 
-      blocks.map((block, i) => 
-        i === index ? {...block, active: !block.active} : block
-      )
-    );
-  }, [setCurrentBlockIndex, setVideoBlocks]);
+  }, [setCurrentBlockIndex, seekTo, videoBlocks]);
 
   const mergeBlocks = useCallback((index: number) => {
     setVideoBlocks(blocks => {
@@ -105,77 +105,7 @@ export const TimelineEditor = () => {
     setCurrentBlockIndex(-1);
   }, [setVideoBlocks, setCurrentBlockIndex]);
 
-  const drawTimeline = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !duration) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw timeline blocks
-    videoBlocks.forEach((block, index) => {
-      const x = (block.start / duration) * canvas.width;
-      const width = ((block.end - block.start) / duration) * canvas.width;
-      
-      // Render active (non-silent) blocks with full opacity, inactive with lower opacity
-      ctx.fillStyle = block.active ? '#4CAF50' : '#FF5252';
-      ctx.globalAlpha = block.active ? 0.9 : 0.3;
-      ctx.fillRect(x, 0, width, canvas.height);
-      
-      // Draw block border
-      ctx.strokeStyle = '#333';
-      ctx.strokeRect(x, 0, width, canvas.height);
-    });
-  }, [duration, videoBlocks]);
-
   const filePath = useRecoilValue(inputFilePathState);
-
-  useEffect(() => {
-    console.log('[TimelineDebug] Container width:', containerWidth);
-    console.log('[TimelineDebug] File path:', filePath);
-    console.log('[TimelineDebug] Video blocks:', videoBlocks);
-    
-    if (containerWidth && canvasRef.current && filePath) {
-      console.log('[TimelineDebug] Initializing canvas with width:', containerWidth);
-      canvasRef.current.width = containerWidth;
-      canvasRef.current.height = 60;
-      drawTimeline();
-    } else {
-      console.warn('[TimelineDebug] Missing requirements:',
-        !containerWidth ? 'containerWidth' : '',
-        !canvasRef.current ? 'canvasRef' : '',
-        !filePath ? 'filePath' : ''
-      );
-    }
-  }, [containerWidth, drawTimeline, filePath, videoBlocks]);
-
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect || !duration) return;
-
-    const clickX = e.clientX - rect.left;
-    const clickTime = (clickX / rect.width) * duration;
-    
-    // Find the first active block that includes the click time
-    const activeBlock = videoBlocks.find(block => 
-      block.active && clickTime >= block.start && clickTime <= block.end
-    );
-
-    // If clicked in an inactive area, jump to start of next active block
-    if (!activeBlock) {
-      const nextActive = videoBlocks.find(block => 
-        block.active && block.start > clickTime
-      );
-      if (nextActive) {
-        seekTo(nextActive.start);
-      }
-      return;
-    }
-
-    seekTo(clickTime);
-  };
 
   const [showHelp, setShowHelp] = useState(false);
   const [colorPickerPos, setColorPickerPos] = useState<{x: number; y: number} | null>(null);
@@ -240,6 +170,7 @@ export const TimelineEditor = () => {
         </div>
       )}
       <TimelineTrack>
+        <TimelineScale $duration={duration} />
         {videoBlocks.map((block, index) => (
           <Block
             key={index}
