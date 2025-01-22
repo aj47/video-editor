@@ -23,16 +23,6 @@ export const videoBlocksState = atom<VideoBlockType[]>({
   default: [],
 });
 
-export const timelineZoomState = atom<number>({
-  key: 'timelineZoomState',
-  default: 1
-});
-
-export const currentBlockIndexState = atom<number>({
-  key: 'currentBlockIndexState', 
-  default: -1
-});
-
 // Helper selector for derived timeline state
 export const timelineState = selector({
   key: 'timelineState',
