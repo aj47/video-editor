@@ -155,11 +155,16 @@ export const detectSilence = async (
           if (bufferedEnd - bufferedStart >= minNonSilenceDuration) {
             blocks.push({ 
               start: bufferedStart, 
-              end: bufferedEnd,
-              isSilence: false
+              end: bufferedEnd
             });
             log.debug(`[detectSilence] Created non-silence block: ${bufferedStart}s - ${bufferedEnd}s`);
           }
+          
+          // Create a block for the silence itself
+          blocks.push({
+            start: silenceStart,
+            end: silenceEnd
+          });
           
           lastEnd = silenceEnd;
         }
@@ -232,24 +237,44 @@ export const detectSilence = async (
         const validatedBlocks: Array<{ start: number; end: number }> = [];
         log.debug('[detectSilence] Starting validation of merged blocks');
         
-        blocks.forEach((block, i) => {
-          if (i > 0) {
-            const prevBlock = validatedBlocks[validatedBlocks.length - 1];
-            log.debug(`[detectSilence] Checking block ${i}: ${block.start}s-${block.end}s against previous ${prevBlock.start}s-${prevBlock.end}s`);
-
-            if (block.start < prevBlock.end) {
-              log.debug(`[detectSilence] Adjusting overlap by moving block start from ${block.start}s to ${prevBlock.end}s`);
-              block.start = prevBlock.end;
-            } else if (block.start - prevBlock.end > maxGapToBridge) {
-              log.debug(`[detectSilence] Adding silence block to fill large gap (${block.start - prevBlock.end}s)`);
-              validatedBlocks.push({ 
-                start: prevBlock.end, 
-                end: block.start 
-              });
-            }
+        // Validate and clean up blocks
+        const validatedBlocks: Array<{ start: number; end: number }> = [];
+        log.debug('[detectSilence] Starting validation of merged blocks');
+        
+        for (const block of mergedBlocks) {
+          // Skip invalid/empty blocks
+          if (block.start >= block.end) {
+            log.debug(`[detectSilence] Skipping invalid block: ${block.start}s-${block.end}s`);
+            continue;
           }
-          validatedBlocks.push(block);
-        });
+
+          if (validatedBlocks.length === 0) {
+            validatedBlocks.push(block);
+            continue;
+          }
+
+          const prevBlock = validatedBlocks[validatedBlocks.length - 1];
+          
+          // Handle overlaps and gaps
+          if (block.start <= prevBlock.end) {
+            // Merge overlapping blocks
+            prevBlock.end = Math.max(prevBlock.end, block.end);
+            log.debug(`[detectSilence] Merged overlapping block into: ${prevBlock.start}s-${prevBlock.end}s`);
+          } else if (block.start - prevBlock.end <= maxGapToBridge) {
+            // Bridge small gaps
+            prevBlock.end = block.end;
+            log.debug(`[detectSilence] Bridged gap to: ${prevBlock.start}s-${prevBlock.end}s`);
+          } else {
+            validatedBlocks.push(block);
+          }
+        }
+
+        // Ensure coverage of full duration
+        const finalBlock = validatedBlocks[validatedBlocks.length - 1];
+        if (finalBlock.end < duration) {
+          finalBlock.end = duration;
+          log.debug(`[detectSilence] Extended final block to cover duration: ${finalBlock.start}s-${finalBlock.end}s`);
+        }
         
         log.debug('[detectSilence] Final validated blocks:', JSON.stringify(validatedBlocks));
 
