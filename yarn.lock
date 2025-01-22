@@ -2264,6 +2264,23 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
+"@ffmpeg/ffmpeg@^0.12.15":
+  version "0.12.15"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/ffmpeg/-/ffmpeg-0.12.15.tgz#e5b05c2b5c946f3464b3aa85461e4654a4649d80"
+  integrity sha512-1C8Obr4GsN3xw+/1Ww6PFM84wSQAGsdoTuTWPOj2OizsRDLT4CXTaVjPhkw6ARyDus1B9X/L2LiXHqYYsGnRFw==
+  dependencies:
+    "@ffmpeg/types" "^0.12.4"
+
+"@ffmpeg/types@^0.12.4":
+  version "0.12.4"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/types/-/types-0.12.4.tgz#aecd9b1a035882ee0bdf8853af37271a3b447473"
+  integrity sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==
+
+"@ffmpeg/util@^0.12.2":
+  version "0.12.2"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/util/-/util-0.12.2.tgz#6bab9d8022a5bed9a6ff0933e5235b9b38698599"
+  integrity sha512-ouyoW+4JB7WxjeZ2y6KpRvB+dLp7Cp4ro8z0HIVpZVCM7AwFlHa0c4R8Y/a4M3wMqATpYKhC7lSFHQ0T11MEDw==
+
 "@fluentui/keyboard-keys@9.0.0-beta.1":
   version "9.0.0-beta.1"
   resolved "https://registry.yarnpkg.com/@fluentui/keyboard-keys/-/keyboard-keys-9.0.0-beta.1.tgz#bee2b6b8c20c940242b6c8c885201dfbb870945e"
@@ -12679,6 +12696,11 @@ react-colorful@^5.1.2:
   version "5.5.0"
   resolved "https://registry.yarnpkg.com/react-colorful/-/react-colorful-5.5.0.tgz#8359f218984a927095477a190ab9927eaf865c0c"
   integrity sha512-BuzrlrM0ylg7coPkXOrRqlf2BgHLw5L44sybbr9Lg4xy7w9e5N7fGYbojOO0s8J0nvrM3PERN2rVFkvSa24lnQ==
+
+react-colorful@^5.6.1:
+  version "5.6.1"
+  resolved "https://registry.yarnpkg.com/react-colorful/-/react-colorful-5.6.1.tgz#7dc2aed2d7c72fac89694e834d179e32f3da563b"
+  integrity sha512-1exovf0uGTGyq5mXQT0zgQ80uvj2PCwvF8zY1RN9/vbJVSjSo3fsB/4L3ObbF7u70NduSiK4xu4Y6q1MHoUGEw==
 
 react-docgen-typescript@^2.0.0:
   version "2.1.1"
