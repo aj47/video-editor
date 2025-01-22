@@ -177,23 +177,35 @@ export const detectSilence = async (
 
         // Fill small gaps between blocks
         const mergedBlocks: Array<{ start: number; end: number }> = [];
+        log.debug('[detectSilence] Initial blocks before gap bridging:', JSON.stringify(blocks));
+        
         for (const block of blocks) {
           if (mergedBlocks.length === 0) {
             mergedBlocks.push(block);
+            log.debug(`[detectSilence] Added initial block: ${block.start}s-${block.end}s`);
             continue;
           }
 
           const lastBlock = mergedBlocks[mergedBlocks.length - 1];
           const gap = block.start - lastBlock.end;
+          log.debug(`[detectSilence] Checking gap between ${lastBlock.end}s and ${block.start}s (${gap}s)`);
 
           if (gap > 0 && gap <= maxGapToBridge) {
-            // Bridge small gaps by extending previous block
-            lastBlock.end = block.start;
-            log.debug(`[detectSilence] Bridged gap of ${gap}s between ${lastBlock.start}s-${lastBlock.end}s and ${block.start}s-${block.end}s`);
+            // Only bridge gaps between non-silence blocks
+            if (lastBlock.end === blocks[blocks.indexOf(lastBlock)]?.end) { // Check if last block was non-silence
+              log.debug(`[detectSilence] Bridging gap of ${gap}s (max allowed: ${maxGapToBridge}s)`);
+              lastBlock.end = block.start;
+            } else {
+              log.debug(`[detectSilence] Not bridging gap - previous block is silence`);
+            }
+          } else if (gap > maxGapToBridge) {
+            log.debug(`[detectSilence] Gap exceeds bridge threshold (${gap}s > ${maxGapToBridge}s)`);
           }
 
+          log.debug(`[detectSilence] Adding block: ${block.start}s-${block.end}s`);
           mergedBlocks.push(block);
         }
+        log.debug('[detectSilence] Blocks after gap bridging:', JSON.stringify(mergedBlocks));
 
         // If no blocks were created, create a single block for the entire duration
         if (blocks.length === 0) {
@@ -203,14 +215,18 @@ export const detectSilence = async (
 
         // Validate and fill gaps
         const validatedBlocks: Array<{ start: number; end: number }> = [];
+        log.debug('[detectSilence] Starting validation of merged blocks');
+        
         blocks.forEach((block, i) => {
           if (i > 0) {
             const prevBlock = validatedBlocks[validatedBlocks.length - 1];
+            log.debug(`[detectSilence] Checking block ${i}: ${block.start}s-${block.end}s against previous ${prevBlock.start}s-${prevBlock.end}s`);
+
             if (block.start < prevBlock.end) {
-              // Adjust overlapping blocks
+              log.debug(`[detectSilence] Adjusting overlap by moving block start from ${block.start}s to ${prevBlock.end}s`);
               block.start = prevBlock.end;
-            } else if (block.start - prevBlock.end > 2.0) { // max_gap_to_bridge
-              // Add silence block to fill large gaps
+            } else if (block.start - prevBlock.end > maxGapToBridge) {
+              log.debug(`[detectSilence] Adding silence block to fill large gap (${block.start - prevBlock.end}s)`);
               validatedBlocks.push({ 
                 start: prevBlock.end, 
                 end: block.start 
@@ -219,6 +235,8 @@ export const detectSilence = async (
           }
           validatedBlocks.push(block);
         });
+        
+        log.debug('[detectSilence] Final validated blocks:', JSON.stringify(validatedBlocks));
 
         // Format result with labels and colors
         const resultBlocks = validatedBlocks.map((b, i) => ({
