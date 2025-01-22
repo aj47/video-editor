@@ -43,7 +43,15 @@ export const ipcRegister = () => {
   });
 
   ipcMain.handle('detect-silence', async (_, filePath: string) => {
-    return await detectSilence(filePath);
+    log.info('[IPC] detect-silence handler invoked with file path:', filePath);
+    try {
+      const result = await detectSilence(filePath);
+      log.info('[IPC] detect-silence completed successfully, result length:', result.length);
+      return result;
+    } catch (err) {
+      log.error('[IPC] detect-silence error:', err);
+      throw err;
+    }
   });
 
   ipcMain.handle(

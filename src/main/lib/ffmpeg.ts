@@ -68,37 +68,62 @@ export const detectSilence = async (
   bufferBefore = 0.5,
   bufferAfter = 0.5
 ): Promise<Array<{ start: number; end: number }>> => {
+  log.info(`[detectSilence] Starting silence detection for: ${filePath}`);
   return new Promise((resolve, reject) => {
     let output = ''
+    log.info('[detectSilence] Setting up ffmpeg command with silencedetect filter');
     const command = ffmpeg(filePath)
       .audioFilters('silencedetect=noise=-40dB:d=0.1')
       .format('null')
       .output('-')
 
     command.on('stderr', (errLine) => {
+      log.debug(`[detectSilence] ffmpeg stderr: ${errLine}`);
       output += errLine
     })
 
     command.on('end', async () => {
+      log.info('[detectSilence] ffmpeg command completed');
       const blocks = [];
       const startTimes = [];
       const endTimes = [];
       
       // Get video duration using ffprobe
       const getVideoDuration = async (filePath: string) => {
-        const data = await ffprobeAsync(filePath);
-        return data.format.duration || 0;
+        log.info(`[detectSilence] Getting video duration for: ${filePath}`);
+        try {
+          const data = await ffprobeAsync(filePath);
+          log.info(`[detectSilence] Video duration: ${data.format.duration}`);
+          return data.format.duration || 0;
+        } catch (err) {
+          log.error('[detectSilence] Error getting video duration:', err);
+          throw err;
+        }
       };
       
       const videoDuration = await getVideoDuration(filePath);
+      log.info(`[detectSilence] Processing output for ${filePath}, duration: ${videoDuration}s`);
       
       const lines = output.split('\n');
+      log.debug(`[detectSilence] Processing ${lines.length} lines of ffmpeg output`);
+      
       lines.forEach(line => {
         const startMatch = line.match(/silence_start: (\d+\.\d+)/);
         const endMatch = line.match(/silence_end: (\d+\.\d+)/);
-        if (startMatch) startTimes.push(parseFloat(startMatch[1]));
-        if (endMatch) endTimes.push(parseFloat(endMatch[1]));
+        
+        if (startMatch) {
+          const time = parseFloat(startMatch[1]);
+          log.debug(`[detectSilence] Found silence_start at ${time}s`);
+          startTimes.push(time);
+        }
+        if (endMatch) {
+          const time = parseFloat(endMatch[1]);
+          log.debug(`[detectSilence] Found silence_end at ${time}s`);
+          endTimes.push(time);
+        }
       });
+      
+      log.info(`[detectSilence] Found ${startTimes.length} silence starts and ${endTimes.length} silence ends`);
 
       // Process detected silence blocks into usable segments
       let currentStart = 0
@@ -121,16 +146,24 @@ export const detectSilence = async (
         })
       }
       
-      resolve(blocks.map((b, i) => ({
+      const resultBlocks = blocks.map((b, i) => ({
         start: b.start,
         end: b.end,
         active: i === 0, // First block active by default
         label: `Segment ${i + 1}`,
         color: '#4CAF50'
-      })))
+      }));
+      
+      log.info(`[detectSilence] Generated ${resultBlocks.length} video blocks`);
+      log.debug('[detectSilence] Result blocks:', resultBlocks);
+      
+      resolve(resultBlocks);
     })
 
-    command.on('error', reject)
+    command.on('error', err => {
+      log.error('[detectSilence] ffmpeg command error:', err);
+      reject(err);
+    })
     command.run()
   })
 }

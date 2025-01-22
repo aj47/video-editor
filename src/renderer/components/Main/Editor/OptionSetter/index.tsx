@@ -216,16 +216,26 @@ export const OptionSetter = () => {
       <Styled.ItemWrapper>
         <Styled.IconButton 
           onClick={async () => {
-            const filePath = inputFilePath; // Use the value from component scope
-            if (!filePath) return;
+            console.log('[UI] Detect Silence button clicked');
+            const filePath = inputFilePath;
+            if (!filePath) {
+              console.error('[UI] No input file path available for silence detection');
+              return;
+            }
             
-            const blocks = await window.api.detectSilence(filePath);
-            setVideoBlocks(blocks.map((b, i) => ({
-              ...b,
-              active: false,
-              label: `Segment ${i + 1}`,
-              color: '#FF5252'
-            })));
+            console.log('[UI] Starting silence detection for:', filePath);
+            try {
+              const blocks = await window.api.detectSilence(filePath);
+              console.log('[UI] Received silence detection blocks:', blocks);
+              setVideoBlocks(blocks.map((b, i) => ({
+                ...b,
+                active: false,
+                label: `Segment ${i + 1}`,
+                color: '#FF5252'
+              })));
+            } catch (err) {
+              console.error('[UI] Silence detection failed:', err);
+            }
           }}
           title="Detect silent segments automatically"
         >
