@@ -115,25 +115,25 @@ export const useVideoController = () => {
         console.log('[SilenceSkip] Current time:', currentTime);
         console.log('[SilenceSkip] Video blocks:', videoBlocks);
         
-        const currentBlock = videoBlocks.find(block => 
-          currentTime >= block.start && currentTime <= block.end
+        const isInSilentRegion = !videoBlocks.some(block => 
+          currentTime >= block.start && currentTime < block.end
         );
 
-        if (currentBlock) {
-          console.log(`[SilenceSkip] In silent block ${currentBlock.start}-${currentBlock.end}, skipping...`);
-          const wasPlaying = !video.paused;
+        if (isInSilentRegion) {
+          console.log('[SilenceSkip] In silent region, finding next active block...');
           
-          // Pause before seeking to prevent audio glitches
-          pause();
+          // Find first block that starts after current time
+          const nextBlock = videoBlocks.find(block => block.start > currentTime);
           
-          // Seek to end of block + small offset to prevent infinite loop
-          const skipTime = currentBlock.end + 0.001;
-          console.log(`[SilenceSkip] Seeking to ${skipTime}`);
-          seekTo(Math.min(skipTime, duration));
-          
-          // Resume playback if needed
-          if (wasPlaying) {
-            requestAnimationFrame(() => play());
+          if (nextBlock) {
+            console.log(`[SilenceSkip] Jumping to next active block at ${nextBlock.start}`);
+            const wasPlaying = !video.paused;
+            pause();
+            seekTo(nextBlock.start);
+            if (wasPlaying) play();
+          } else {
+            console.log('[SilenceSkip] No subsequent blocks, pausing');
+            pause();
           }
         }
       }

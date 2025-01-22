@@ -28,16 +28,14 @@ export const SeekBar = () => {
       console.log('[SeekBar] Seeking to:', newTime);
       console.log('[SeekBar] Video blocks:', videoBlocks);
       
-      const isInSilentBlock = videoBlocks.some(block => 
-        newTime >= block.start && newTime < block.end // Use < instead of <= to allow seeking to block ends
+      const isInSilentRegion = !videoBlocks.some(block => 
+        newTime >= block.start && newTime < block.end
       );
       
-      console.log(`[SeekBar] ${isInSilentBlock ? 'In' : 'Not in'} silent block`);
-      
-      if (!isInSilentBlock) {
-        seekTo(newTime);
+      if (isInSilentRegion) {
+        console.warn('[SeekBar] Prevented seek into silent region');
       } else {
-        console.warn('[SeekBar] Prevented seek into silent block');
+        seekTo(newTime);
       }
     },
     [seekTo, videoBlocks]
