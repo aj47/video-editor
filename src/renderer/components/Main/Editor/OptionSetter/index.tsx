@@ -229,9 +229,9 @@ export const OptionSetter = () => {
               console.log('[UI] Received silence detection blocks:', blocks);
               setVideoBlocks(blocks.map((b, i) => ({
                 ...b,
-                active: false,
+                active: true,  // Non-silent blocks are active by default
                 label: `Segment ${i + 1}`,
-                color: '#FF5252'
+                color: '#4CAF50'  // Green for active/non-silent
               })));
             } catch (err) {
               console.error('[UI] Silence detection failed:', err);

@@ -119,7 +119,9 @@ export const TimelineEditor = () => {
       const x = (block.start / duration) * canvas.width;
       const width = ((block.end - block.start) / duration) * canvas.width;
       
+      // Render active (non-silent) blocks with full opacity, inactive with lower opacity
       ctx.fillStyle = block.active ? '#4CAF50' : '#FF5252';
+      ctx.globalAlpha = block.active ? 0.9 : 0.3;
       ctx.fillRect(x, 0, width, canvas.height);
       
       // Draw block border
@@ -144,6 +146,23 @@ export const TimelineEditor = () => {
 
     const clickX = e.clientX - rect.left;
     const clickTime = (clickX / rect.width) * duration;
+    
+    // Find the first active block that includes the click time
+    const activeBlock = videoBlocks.find(block => 
+      block.active && clickTime >= block.start && clickTime <= block.end
+    );
+
+    // If clicked in an inactive area, jump to start of next active block
+    if (!activeBlock) {
+      const nextActive = videoBlocks.find(block => 
+        block.active && block.start > clickTime
+      );
+      if (nextActive) {
+        seekTo(nextActive.start);
+      }
+      return;
+    }
+
     seekTo(clickTime);
   };
 
