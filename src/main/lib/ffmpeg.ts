@@ -97,9 +97,6 @@ export const detectSilence = async (
         const silenceRanges: Array<[number, number]> = [];
         let currentStart: number | null = null;
 
-        // Buffer for accumulating multi-line output
-        const buffer = '';
-
         // Process each line directly
         output.split('\n').forEach((rawLine) => {
           const line = rawLine.trim();
@@ -169,7 +166,7 @@ export const detectSilence = async (
 
         // Process all silence ranges to find non-silence segments
         let lastEnd = 0;
-        for (const [silenceStart, silenceEnd] of filteredRanges) {
+        filteredRanges.forEach(([silenceStart, silenceEnd]) => {
           // Calculate non-silence segment between silences
           const segmentStart = Math.max(lastEnd, 0);
           const segmentEnd = silenceStart;
@@ -190,7 +187,7 @@ export const detectSilence = async (
           }
 
           lastEnd = silenceEnd;
-        }
+        });
 
         // Handle final segment after last silence
         if (lastEnd < duration) {
@@ -201,7 +198,6 @@ export const detectSilence = async (
             blocks.push({
               start: bufferedStart,
               end: bufferedEnd,
-              isSilence: false,
             });
             log.debug(
               `[detectSilence] Created final non-silence block: ${bufferedStart}s - ${bufferedEnd}s`
@@ -228,29 +224,28 @@ export const detectSilence = async (
         // Merge adjacent or overlapping blocks
         const mergedBlocks: Array<{ start: number; end: number }> = [];
 
-        for (const block of blocks) {
-          if (mergedBlocks.length === 0) {
-            mergedBlocks.push({ ...block });
-            continue;
-          }
+        blocks.forEach((block) => {
+          if (mergedBlocks.length > 0) {
+            const lastBlock = mergedBlocks[mergedBlocks.length - 1];
 
-          const lastBlock = mergedBlocks[mergedBlocks.length - 1];
-
-          // Check if we should merge with previous block
-          if (block.start <= lastBlock.end + maxGapToBridge) {
-            // Extend the previous block
-            lastBlock.end = Math.max(lastBlock.end, block.end);
-            log.debug(
-              `[detectSilence] Merged block with previous, new range: ${lastBlock.start}s-${lastBlock.end}s`
-            );
+            // Check if we should merge with previous block
+            if (block.start <= lastBlock.end + maxGapToBridge) {
+              // Extend the previous block
+              lastBlock.end = Math.max(lastBlock.end, block.end);
+              log.debug(
+                `[detectSilence] Merged block with previous, new range: ${lastBlock.start}s-${lastBlock.end}s`
+              );
+            } else {
+              // Add as new block
+              mergedBlocks.push({ ...block });
+              log.debug(
+                `[detectSilence] Added new block: ${block.start}s-${block.end}s`
+              );
+            }
           } else {
-            // Add as new block
             mergedBlocks.push({ ...block });
-            log.debug(
-              `[detectSilence] Added new block: ${block.start}s-${block.end}s`
-            );
           }
-        }
+        });
         log.debug(
           '[detectSilence] Blocks after gap bridging:',
           JSON.stringify(mergedBlocks)
@@ -271,39 +266,37 @@ export const detectSilence = async (
         const validatedBlocks: Array<{ start: number; end: number }> = [];
         log.debug('[detectSilence] Starting validation of merged blocks');
 
-        for (const block of mergedBlocks) {
+        mergedBlocks.forEach((block) => {
           // Skip invalid/empty blocks
-          if (block.start >= block.end) {
+          if (block.start < block.end) {
+            if (validatedBlocks.length > 0) {
+              const prevBlock = validatedBlocks[validatedBlocks.length - 1];
+
+              // Handle overlaps and gaps
+              if (block.start <= prevBlock.end) {
+                // Merge overlapping blocks
+                prevBlock.end = Math.max(prevBlock.end, block.end);
+                log.debug(
+                  `[detectSilence] Merged overlapping block into: ${prevBlock.start}s-${prevBlock.end}s`
+                );
+              } else if (block.start - prevBlock.end <= maxGapToBridge) {
+                // Bridge small gaps
+                prevBlock.end = block.end;
+                log.debug(
+                  `[detectSilence] Bridged gap to: ${prevBlock.start}s-${prevBlock.end}s`
+                );
+              } else {
+                validatedBlocks.push(block);
+              }
+            } else {
+              validatedBlocks.push(block);
+            }
+          } else {
             log.debug(
               `[detectSilence] Skipping invalid block: ${block.start}s-${block.end}s`
             );
-            continue;
           }
-
-          if (validatedBlocks.length === 0) {
-            validatedBlocks.push(block);
-            continue;
-          }
-
-          const prevBlock = validatedBlocks[validatedBlocks.length - 1];
-
-          // Handle overlaps and gaps
-          if (block.start <= prevBlock.end) {
-            // Merge overlapping blocks
-            prevBlock.end = Math.max(prevBlock.end, block.end);
-            log.debug(
-              `[detectSilence] Merged overlapping block into: ${prevBlock.start}s-${prevBlock.end}s`
-            );
-          } else if (block.start - prevBlock.end <= maxGapToBridge) {
-            // Bridge small gaps
-            prevBlock.end = block.end;
-            log.debug(
-              `[detectSilence] Bridged gap to: ${prevBlock.start}s-${prevBlock.end}s`
-            );
-          } else {
-            validatedBlocks.push(block);
-          }
-        }
+        });
 
         // Ensure coverage of full duration
         const finalBlock = validatedBlocks[validatedBlocks.length - 1];

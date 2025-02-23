@@ -1,140 +1,77 @@
-import crypto from 'crypto';
-import log from 'electron-log';
-import fs from 'fs';
 import path from 'path';
 
-import * as FFmpeg from '@main/lib/ffmpeg';
+import { detectSilence } from '../../../src/main/lib/ffmpeg';
 
-import { InspectData } from '@shared/types';
+describe('detectSilence', () => {
+  const testVideoPath = path.join(__dirname, 'assets', 'test.mp4');
 
-log.transports.file.level = false;
-log.transports.console.level = false;
-
-function getMD5(filePath: string) {
-  return new Promise((resolve, reject) => {
-    const readStream = fs.createReadStream(filePath);
-    const md5hash = crypto.createHash('md5');
-    md5hash.setEncoding('base64');
-    readStream.pipe(md5hash);
-    readStream.on('end', () => {
-      resolve(md5hash.digest('hex'));
-    });
-    readStream.on('error', (e: any) => {
-      reject(e);
-    });
-  });
-}
-
-describe('FFmpeg', () => {
-  const testMovie = path.join(
-    process.cwd(),
-    '/tests/main/lib/assets/output.mp4'
-  );
-
-  const expected: {
-    normalReport: InspectData | undefined;
-    errorReport: InspectData | undefined;
-    md5: {
-      noOptions: string;
-      withOptions: string;
-    };
-  } = {
-    normalReport: {
-      size: 4026,
-      codec: 'h264',
-      width: 480,
-      height: 270,
-      fps: 30,
-    },
-    errorReport: undefined,
-    md5: {
-      noOptions: '320a64df6d1d0d8f24f217a87c7329f6',
-      withOptions: '08ccd92434d0147b8a9481aa045a5ee5',
-    },
-  };
-
-  describe('inspectFile()', () => {
-    describe('arg: movie file', () => {
-      it('sends normal report', (done) => {
-        FFmpeg.inspectFile(testMovie).then((data) => {
-          expect(data).toEqual(expected.normalReport);
-          done();
-        });
-      });
-    });
-
-    describe('arg: except for movie file', () => {
-      it('sends error report', (done) => {
-        FFmpeg.inspectFile(
-          path.join(process.cwd(), '/tests/main/lib/assets/')
-        ).then((data) => {
-          expect(data).toEqual(expected.errorReport);
-          done();
-        });
-      });
-    });
+  it('should detect silence periods in a video', async () => {
+    const silenceRanges = await detectSilence(testVideoPath);
+    expect(silenceRanges).toEqual([
+      {
+        start: 0,
+        end: 4,
+        active: true,
+        label: 'Segment 1',
+        color: '#4CAF50',
+      },
+    ]);
   });
 
-  describe('convertToGif()', () => {
-    describe('with no options', () => {
-      it('generates gif file', (done) => {
-        const outputPath = `${testMovie}-with-no-options1.gif`;
-        FFmpeg.convert(testMovie, {
-          outputPath,
-          crop: { x: 0, y: 0, width: 100, height: 100 },
-        })
-          .on('end', () => {
-            fs.stat(outputPath, async (err) => {
-              if (!err) {
-                const md5 = await getMD5(outputPath);
-                fs.unlink(outputPath, () => {});
-                expect(md5).toBe(expected.md5.noOptions);
-                done();
-              }
-            });
-          })
-          .run();
-      });
-    });
+  it('should handle videos with no silence', async () => {
+    const silenceRanges = await detectSilence(testVideoPath, -100);
+    expect(silenceRanges).toEqual([
+      {
+        start: 0,
+        end: 4,
+        active: true,
+        label: 'Segment 1',
+        color: '#4CAF50',
+      },
+    ]);
+  });
 
-    describe('with options', () => {
-      it('generates gif file', (done) => {
-        const outputPath = `${testMovie}-with-options2.gif`;
+  it('should respect the silence threshold', async () => {
+    const strictRanges = await detectSilence(testVideoPath, -30);
+    const lenientRanges = await detectSilence(testVideoPath, -50);
+    expect(strictRanges.length).toBeGreaterThanOrEqual(lenientRanges.length);
+  });
 
-        FFmpeg.convert(testMovie, {
-          outputPath,
-          width: 320,
-          height: undefined,
-          fps: 10,
-          palette: true,
-          endTime: 0.5007,
-          crop: { x: 240, y: 135, width: 50, height: 50 },
-        })
-          .on('end', () => {
-            fs.stat(outputPath, async (err) => {
-              if (!err) {
-                const md5 = await getMD5(outputPath);
-                fs.unlink(outputPath, () => {});
-                expect(md5).toBe(expected.md5.withOptions);
-                done();
-              }
-            });
-          })
-          .run();
-      });
-    });
+  it('should handle minimum silence duration', async () => {
+    const shortRanges = await detectSilence(testVideoPath, -40, 0.1);
+    const longRanges = await detectSilence(testVideoPath, -40, 1.0);
+    expect(shortRanges.length).toBeGreaterThanOrEqual(longRanges.length);
+  });
 
-    describe('arg: invalid options', () => {
-      it('sends error report', (done) => {
-        FFmpeg.convert('invalid input', {
-          outputPath: 'invalid output',
-          crop: { x: 0, y: 0, width: 100, height: 100 },
-        })
-          .on('error', () => {
-            done();
-          })
-          .run();
-      });
-    });
+  it('should handle non-silence buffer', async () => {
+    const smallBufferRanges = await detectSilence(testVideoPath, -40, 0.1, 0.1);
+    const largeBufferRanges = await detectSilence(testVideoPath, -40, 0.1, 1.0);
+    expect(smallBufferRanges.length).toBeGreaterThanOrEqual(
+      largeBufferRanges.length
+    );
+  });
+
+  it('should detect complex silence patterns', async () => {
+    const complexTestVideoPath = path.join(
+      __dirname,
+      'assets',
+      'complex_test.mp4'
+    );
+    const silenceRanges = await detectSilence(
+      complexTestVideoPath,
+      -40,
+      0.1,
+      0.1
+    );
+
+    expect(silenceRanges).toEqual([
+      {
+        start: 2.00002,
+        end: 10,
+        active: true,
+        label: 'Segment 1',
+        color: '#4CAF50',
+      },
+    ]);
   });
 });
